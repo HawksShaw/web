@@ -19,7 +19,9 @@ class Pacjent(models.Model):
     email = models.EmailField(verbose_name="Adres e-mail")
     fizjo = models.ForeignKey(
         Fizjoterapeuta,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="pacjenci",
         verbose_name="Fizjoterapeuta odpowiedzialny za pacjenta"
     )
