@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 from .models import Fizjoterapeuta, Pacjent, Program
 from .forms import FizjoForm, PacjentForm, ProgramForm, RejestrForm
 
@@ -40,6 +40,27 @@ def dashboard_pacjent(request):
 
     return render(request, 'dashboard_pacjent.html', context)
 
+def dodaj_element(request, form_class, szablon_tytul):
+    form = form_class(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        return redirect('dashboard')
+    
+    return render(request, 'formularz.html', {'form': form, 'tytul': szablon_tytul})
+
+@login_required
+def dodaj_fizjoterapeute(request):
+    return dodaj_element(request, FizjoForm, "Dodaj Fizjoterapeutę")
+
+@login_required
+def dodaj_pacjenta(request):
+    return dodaj_element(request, PacjentForm, "Dodaj Pacjenta")
+
+@login_required
+def dodaj_program(request):
+    return dodaj_element(request, ProgramForm, "Przypisz Program Ćwiczeniowy")
+
+
 def rejestracja(request):
     if request.method == "POST":
         form = RejestrForm(request.POST)
@@ -53,6 +74,10 @@ def rejestracja(request):
 
             login(request, user)
             return redirect('dashboard')
-        else:
-            form = RejestrForm()
-        return render(request, 'registration/rejestracja.html', {'form':form})
+    else:
+        form = RejestrForm()
+    return render(request, 'registration/rejestracja.html', {'form':form})
+
+def wyloguj(request):
+    logout(request)
+    return redirect('login')

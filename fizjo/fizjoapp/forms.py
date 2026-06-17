@@ -16,7 +16,7 @@ class RejestrForm(UserCreationForm):
         label="Typ konta"
     )
 
-class Meta(UserCreationForm):
+class Meta(UserCreationForm.Meta):
     fields = UserCreationForm.Meta.fields + ('email',)
 
 class FizjoForm(forms.ModelForm):
