@@ -1,7 +1,9 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 # Create your models here.
 class Fizjoterapeuta(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
     imie = models.CharField(max_length=50, verbose_name="Imię")
     nazwisko = models.CharField(max_length=100, verbose_name="Nazwisko")
     specka = models.CharField(max_length=150, verbose_name="Specjalizacja")
@@ -11,6 +13,7 @@ class Fizjoterapeuta(models.Model):
     
 
 class Pacjent(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
     imie = models.CharField(max_length=50, verbose_name="Imię pacjenta")
     nazwisko = models.CharField(max_length=100, verbose_name="Nazwisko pacjenta")
     email = models.EmailField(verbose_name="Adres e-mail")
