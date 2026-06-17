@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pl">
+    <head>
+        <meta charset="UTF=8">
+        <title>Fizjoterapia</title>
+    </head>
+    <body>
+        <h1>Panelik (PLACEHOLDER)</h1>
+        <hr>
+
+        <div class="Sekcja">
+            <h2>Fizjoterapeuci</h2>
+            <a href="{% url 'dodaj_fizjoterapeute' %}" class="Przycisk">+ Dodaj Fizjoterapeutę</a>
+            <table>
+                <tr><th>Imię i nazwisko</th><th>Specjalizacja</th><th>Tytuł Naukowy</th></tr>
+                {% for fizjo in fizjoterapeuci %}
+                    <tr><td>{{ fizjo.imie }} {{ fizjo.nazwisko }}</td><td>{{ fizjo.specka }}</td><td>{{ fizjo.tytul }}</td></tr>
+                {% empty %}
+                    <tr><td colspan="2">Brak zarejestrowanych fizjoterapeutów.</td></tr>
+                {% endfor %}
+            </table>
+        </div>
+
+        <div class="Sekcja">
+            <h2>Pacjenci</h2>
+            <a href="{% url 'dodaj_pacjenta' %}" class="Przycisk">+ Dodaj Pacjenta</a>
+            <table>
+                <tr><th>Pacjent</th><th>Email</th><th>Lekarz Prowadzący</th></tr>
+                {% for pacjent in pacjenci %}
+                    <tr><td>{{ pacjent.imie }} {{ pacjent.nazwisko }}</td><td>{{ pacjent.email }}</td><td>{{ pacjent.fizjo }}</td></tr>
+                {% empty %}
+                    <tr><td colspan="3">Brak pacjentów w bazie.</td></tr>
+                {% endfor %}
+            </table>
+        </div>
+
+        <div class="Sektor">
+        <h2>Programy Ćwiczeniowe</h2>
+        <a href="{% url 'dodaj_program' %}" class="Przycisk">+ Przypisz Nowy Program</a>
+        <table>
+            <tr><th>Nazwa programu</th><th>Pacjent</th><th>Opis / Zalecenia</th></tr>
+            {% for program in programy %}
+                <tr><td>{{ program.nazwa }}</td><td>{{ program.pacjent }}</td><td>{{ program.opis }}</td></tr>
+            {% empty %}
+                <tr><td colspan="3">Nie ułożono jeszcze żadnego programu.</td></tr>
+            {% endfor %}
+        </table>
+        </div>
+    </body>
+</html>
