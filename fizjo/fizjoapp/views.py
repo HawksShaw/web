@@ -1,5 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import login
 from .models import Fizjoterapeuta, Pacjent, Program
 from .forms import FizjoForm, PacjentForm, ProgramForm
 
@@ -35,3 +37,15 @@ def add_pacjent(request):
 @login_required
 def add_program(request):
     return add_element(request, ProgramForm, "Dodaj Program Ćwiczeniowy")
+
+def rejestracja(request):
+    if request.method == "POST":
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return redirect('dashboard')
+    else:
+        form = UserCreationForm()
+
+    return render(request, 'registration/rejestracja.html', {'form':form})
