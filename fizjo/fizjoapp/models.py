@@ -42,3 +42,12 @@ class Program(models.Model):
 
     def __str__(self):
         return f"{self.nazwa} - {self.pacjent}"
+#Kalendarz  
+class Wizyta(models.Model):
+    lekarz = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
+    pacjent_nazwa = models.CharField(max_length=100, default="Pacjent")
+    data_rozpoczecia = models.DateTimeField()
+    data_zakonczenia = models.DateTimeField()
+
+    def __str__(self):
+        return f"{self.pacjent_nazwa} - {self.data_rozpoczecia}"
