@@ -94,7 +94,7 @@ def rejestracja(request):
 
 def wyloguj(request):
     logout(request)
-    return redirect('login')
+    return redirect('/accounts/login')
 
 class CustomLoginView(LoginView):
     template_name = 'login.html'
