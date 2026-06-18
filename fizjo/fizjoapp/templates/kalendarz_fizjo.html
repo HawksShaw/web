@@ -1,0 +1,59 @@
+{% load static %}
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Kalendarz fizjoterapeuty</title>
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/all.min.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/box.css' %}" />
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
+    <div id="calendar" style="max-width: 900px; margin: 40px auto"></div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var calendarEl = document.getElementById("calendar");
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: "timeGridWeek",
+                slotMinTime: "08:00:00",
+                slotMaxTime: "16:00:00",
+                allDaySlot: false,
+                selectable: false,
+
+                height: "auto", // Dopasowuje wysokość kalendarza do ilości godzin, zamiast go sztucznie rozciągać
+                expandRows: false, // Zapobiega nienaturalnemu rozciąganiu wierszy na cały ekran
+                dayHeaderFormat: { weekday: "long" },
+                locale: "pl",
+                events: "/api/get-appointments/",
+
+                select: function (info) {
+                    if (confirm("Czy chcesz zarezerwować ten termin?")) {
+                        fetch("/api/add-appointment/", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                                start: info.startStr,
+                                end: info.endStr,
+                            }),
+                        })
+                            .then((response) => response.json())
+                            .then((data) => {
+                                alert("Zapisano!");
+                                calendar.refetchEvents(); // Odśwież kalendarz, żeby pokazał czerwoną blokadę
+                            })
+                            .catch((error) => console.error("Błąd:", error));
+                        }
+                     },
+                });
+                calendar.render();
+            });
+        </script>
+    </body>
+</html>

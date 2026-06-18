@@ -17,7 +17,9 @@ urlpatterns = [
     path('dodaj-program/', views.dodaj_program, name='dodaj_program'),
 
     # Hiperłącza do bloków w panel-fizjo
-    path('kalendarz-fizjo/', views.kalendarz_fizjo, name='kalendarz_fizjoterapeuty'),
+    path('kalendarz-fizjo/', views.kalendarz_fizjo, name='kalendarz_fizjo'),
+    path('pacjenci-fizjo/', views.pacjenci_fizjo, name='pacjenci_fizjo'),
+    path('programy-fizjo/', views.programy_fizjo, name='programy_fizjo'),
 
     #Kalendarz
     path('lekarze/', views.wyszukiwarka_lekarzy, name='wyszukiwarka_lekarzy'),

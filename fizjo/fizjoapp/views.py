@@ -228,3 +228,11 @@ def get_moje_wizyty(request):
 @login_required
 def kalendarz_fizjo(request):
     return render(request, 'kalendarz_fizjo.html')
+
+@login_required
+def pacjenci_fizjo(request):
+    return render(request, 'pacjenci_fizjo.html')
+
+@login_required
+def programy_fizjo(request):
+    return render(request, 'programy_fizjo.html')
