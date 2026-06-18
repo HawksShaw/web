@@ -13,4 +13,12 @@ urlpatterns = [
     path('dodaj-fizjoterapeute/', views.dodaj_fizjoterapeute, name='dodaj_fizjoterapeute'),
     path('dodaj-pacjenta/', views.dodaj_pacjenta, name='dodaj_pacjenta'),
     path('dodaj-program/', views.dodaj_program, name='dodaj_program'),
+
+    #Kalendarz
+    path('lekarze/', views.wyszukiwarka_lekarzy, name='wyszukiwarka_lekarzy'),
+    path('lekarz/<int:lekarz_id>/', views.profil_lekarza, name='profil_lekarza'),
+    path('api/get-appointments/<int:lekarz_id>/', views.get_wizyty_pacjent, name='get_wizyty_pacjent'),
+    path('api/add-appointment/<int:lekarz_id>/', views.dodaj_wizyte_pacjent, name='dodaj_wizyte_pacjent'),
+    path('api/get-appointments/', views.get_wizyty, name='get_wizyty'),
+    path('api/add-appointment/', views.dodaj_wizyte, name='dodaj_wizyte'),
 ]

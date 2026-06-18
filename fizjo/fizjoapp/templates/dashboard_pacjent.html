@@ -13,10 +13,11 @@
         <span class="navbar-brand mb-0 h1">
           <i class="fas fa-notes-medical text-success"></i> FizjoApp
         </span>
-        
+
         <div class="d-flex align-items-center">
           <span class="text-light me-3">
-            Zalogowany jako: <strong class="text-warning">{{ user.username }}</strong>
+            Zalogowany jako:
+            <strong class="text-warning">{{ user.username }}</strong>
           </span>
           <a href="{% url 'wyloguj' %}" class="btn btn-outline-danger btn-sm">
             <i class="fas fa-sign-out-alt"></i> Wyloguj
@@ -24,19 +25,38 @@
         </div>
       </div>
     </nav>
-    
+
+    <div style="margin-bottom: 30px; padding: 20px; border: 1px solid #ccc">
+      <h3>Znajdź lekarza i umów wizytę</h3>
+
+      <form method="GET" action="{% url 'wyszukiwarka_lekarzy' %}">
+        <input
+          type="text"
+          name="szukaj"
+          placeholder="Wpisz nazwisko lekarza..."
+          style="padding: 8px; width: 250px"
+        />
+        <button type="submit" style="padding: 8px 15px">Szukaj</button>
+      </form>
+    </div>
+
     <div class="container mt-4">
-      
       <div class="alert alert-info shadow-sm mb-4">
         <h1>
-          <i class="fas fa-heartbeat text-danger"></i> Witaj w swoim panelu zdrowia, {{ user.username }}!
+          <i class="fas fa-heartbeat text-danger"></i> Witaj w swoim panelu
+          zdrowia, {{ user.username }}!
         </h1>
-        <p class="mb-0">Poniżej znajdziesz swoje indywidualne plany ćwiczeniowe ułożone przez specjalistów.</p>
+        <p class="mb-0">
+          Poniżej znajdziesz swoje indywidualne plany ćwiczeniowe ułożone przez
+          specjalistów.
+        </p>
       </div>
 
       <div class="Sektor mb-5">
-        <h2><i class="fas fa-clipboard-check"></i> Twoje programy do wykonania</h2>
-        
+        <h2>
+          <i class="fas fa-clipboard-check"></i> Twoje programy do wykonania
+        </h2>
+
         <table class="table table-striped table-hover border mt-3">
           <thead class="table-primary">
             <tr>
@@ -55,8 +75,8 @@
             {% empty %}
             <tr>
               <td colspan="3" class="text-center py-4 text-muted">
-                <i class="fas fa-mug-hot fa-2x mb-2"></i><br>
-                Nie masz aktualnie przypisanych żadnych programów ćwiczeń.<br>
+                <i class="fas fa-mug-hot fa-2x mb-2"></i><br />
+                Nie masz aktualnie przypisanych żadnych programów ćwiczeń.<br />
                 Odpoczywaj!
               </td>
             </tr>
@@ -64,7 +84,54 @@
           </tbody>
         </table>
       </div>
-
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
+    <div id="calendar" style="max-width: 900px; margin: 40px auto"></div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        var calendarEl = document.getElementById("calendar");
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+          initialView: "timeGridWeek",
+          slotMinTime: "08:00:00",
+          slotMaxTime: "16:00:00",
+          allDaySlot: false,
+          selectable: true,
+
+          // --- DODAJ TE DWIE LINIJKI ---
+          height: "auto", // Dopasowuje wysokość kalendarza do ilości godzin, zamiast go sztucznie rozciągać
+          expandRows: false, // Zapobiega nienaturalnemu rozciąganiu wierszy na cały ekran
+          // -----------------------------
+          dayHeaderFormat: { weekday: "long" },
+          locale: "pl",
+          events: "/api/get-appointments/",
+
+          // 2. Co się dzieje, gdy pacjent zaznaczy wolny termin
+          select: function (info) {
+            if (confirm("Czy chcesz zarezerwować ten termin?")) {
+              // Wysyłamy dane do bazy (Django: dodaj_wizyte)
+              fetch("/api/add-appointment/", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  start: info.startStr,
+                  end: info.endStr,
+                }),
+              })
+                .then((response) => response.json())
+                .then((data) => {
+                  alert("Zapisano!");
+                  calendar.refetchEvents(); // Odśwież kalendarz, żeby pokazał czerwoną blokadę
+                })
+                .catch((error) => console.error("Błąd:", error));
+            }
+          },
+        });
+        calendar.render();
+      });
+    </script>
   </body>
 </html>

@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Profil: dr {{ lekarz.username }}</title>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+  </head>
+  <body>
+    <h1>Kalendarz dr {{ lekarz.username }}</h1>
+
+    <div id="calendar" style="max-width: 900px; margin: 40px auto"></div>
+
+    <script>
+      // Zapisujemy ID lekarza z Django do zmiennej w JavaScript
+      const lekarzId = "{{ lekarz.id }}";
+
+      document.addEventListener("DOMContentLoaded", function () {
+        var calendarEl = document.getElementById("calendar");
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+          initialView: "timeGridWeek",
+          slotMinTime: "08:00:00",
+          slotMaxTime: "16:00:00",
+          allDaySlot: false,
+          selectable: true,
+          height: "auto",
+          expandRows: false,
+          dayHeaderFormat: { weekday: "long" },
+          locale: "pl",
+          navLinks: false,
+
+          // TUTAJ ZMIANA: Doklejamy ID lekarza do adresu API
+          events: "/api/get-appointments/" + lekarzId + "/",
+
+          select: function (info) {
+            if (
+              confirm(
+                "Czy chcesz zarezerwować ten termin u dr " +
+                  "{{ lekarz.username }}" +
+                  "?",
+              )
+            ) {
+              // TUTAJ ZMIANA: Wysyłamy rezerwację na API z ID lekarza
+              fetch("/api/add-appointment/" + lekarzId + "/", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  start: info.startStr,
+                  end: info.endStr,
+                }),
+              })
+                .then((response) => response.json())
+                .then((data) => {
+                  alert("Zapisano!");
+                  calendar.refetchEvents();
+                })
+                .catch((error) => console.error("Błąd:", error));
+            }
+          },
+        });
+        calendar.render();
+      });
+    </script>
+  </body>
+</html>

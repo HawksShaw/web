@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Wybierz lekarza</title>
+  </head>
+  <body>
+    <h1>Znajdź lekarza</h1>
+
+    <form method="GET" action="{% url 'wyszukiwarka_lekarzy' %}">
+      <input
+        type="text"
+        name="szukaj"
+        value="{{ fraza }}"
+        placeholder="Wpisz nazwisko..."
+      />
+      <button type="submit">Szukaj</button>
+    </form>
+
+    <ul>
+      {% for l in lekarze %}
+      <li>
+        {{ l.username }}
+        <a href="{% url 'profil_lekarza' l.id %}"
+          >Zobacz kalendarz i umów wizytę</a
+        >
+      </li>
+      {% empty %}
+      <li>Nie znaleziono żadnego lekarza.</li>
+      {% endfor %}
+    </ul>
+  </body>
+</html>
