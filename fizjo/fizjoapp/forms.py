@@ -44,8 +44,8 @@ class RejestrForm(UserCreationForm):
         self.fields['password2'].widget.attrs['class'] = 'form-control'
         self.fields['password2'].label = 'Potwierdź hasło'
 
-class Meta(UserCreationForm.Meta):
-    fields = UserCreationForm.Meta.fields + ('email',)
+    class Meta(UserCreationForm.Meta):
+        fields = UserCreationForm.Meta.fields + ('email',)
 
 class FizjoForm(forms.ModelForm):
     class Meta:

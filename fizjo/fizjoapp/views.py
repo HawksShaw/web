@@ -78,12 +78,15 @@ def rejestracja(request):
     if request.method == "POST":
         form = RejestrForm(request.POST)
         if form.is_valid():
-            user = form.save()
+            user = form.save(commit=False)
             rola = form.cleaned_data.get('rola')
+            user.first_name = form.cleaned_data['imie']
+            user.last_name = form.cleaned_data['nazwisko']
+            user.save()
             if rola == 'fizjo':
-                Fizjoterapeuta.objects.create(user=user, imie=user.imie, nazwisko=user.nazwisko, specka="Do uzupełnienia", tytul="Do uzupełnienia")
+                Fizjoterapeuta.objects.create(user=user, imie=user.first_name, nazwisko=user.last_name, specka="Do uzupełnienia", tytul="Do uzupełnienia")
             else:
-                Pacjent.objects.create(user=user, imie=user.imie, nazwisko=user.nazwisko, email=user.email)
+                Pacjent.objects.create(user=user, imie=user.first_name, nazwisko=user.last_name, email=user.email)
 
             login(request, user)
             return redirect('dashboard')
@@ -94,14 +97,13 @@ def rejestracja(request):
 
 def wyloguj(request):
     logout(request)
-    return redirect('/accounts/login')
+    return redirect('login')
 
 class CustomLoginView(LoginView):
-    template_name = 'login.html'
+    template_name = 'registration/login.html'
     form_class = LoginForm
 @login_required
 def wyszukiwarka_lekarzy(request):
-    # Pobieramy wszystkich użytkowników (później odfiltrujemy tylko lekarzy)
     fraza = request.GET.get('szukaj', '')
     if fraza:
         lekarze = User.objects.filter(username__icontains=fraza)
