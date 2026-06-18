@@ -1,9 +1,10 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.views import LoginView
 from django.contrib.auth import login, logout
 from .models import Fizjoterapeuta, Pacjent, Program
-from .forms import FizjoForm, PacjentForm, ProgramForm, RejestrForm
+from .forms import FizjoForm, PacjentForm, ProgramForm, RejestrForm, LoginForm
 
 # Create your views here.
 @login_required
@@ -68,9 +69,9 @@ def rejestracja(request):
             user = form.save()
             rola = form.cleaned_data.get('rola')
             if rola == 'fizjo':
-                Fizjoterapeuta.objects.create(user=user, imie=user.username, nazwisko="", specka="Do uzupełnienia", tytul="Do uzupełnienia")
+                Fizjoterapeuta.objects.create(user=user, imie=user.imie, nazwisko=user.nazwisko, specka="Do uzupełnienia", tytul="Do uzupełnienia")
             else:
-                Pacjent.objects.create(user=user, imie=user.username, nazwisko="", email=user.email)
+                Pacjent.objects.create(user=user, imie=user.imie, nazwisko=user.nazwisko, email=user.email)
 
             login(request, user)
             return redirect('dashboard')
@@ -78,6 +79,11 @@ def rejestracja(request):
         form = RejestrForm()
     return render(request, 'registration/rejestracja.html', {'form':form})
 
+
 def wyloguj(request):
     logout(request)
     return redirect('login')
+
+class CustomLoginView(LoginView):
+    template_name = 'login.html'
+    form_class = LoginForm

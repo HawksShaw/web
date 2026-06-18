@@ -1,20 +1,115 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>Rejestracja</title>
+    <title>Rejestracja - FizjoApp</title>
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/all.min.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/buttons.css' %}" />
+    <style>
+        /* Delikatnie szare tło, by biała karta formularza ładnie się odcinała */
+        body {
+            background-color: #f8f9fa;
+        }
+    </style>
 </head>
-<body>
+<body class="d-flex align-items-center justify-content-center vh-100">
 
-    <h2>Załóż nowe konto</h2>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                
+                <div class="card shadow-lg border-0 rounded-lg mt-5">
+                    <div id="cardHeader" class="card-header bg-secondary text-white text-center py-4">
+                        <h3 class="mb-0"><i class="fas fa-user-plus"></i> Załóż nowe konto</h3>
+                    </div>
+                    <div class="card-body p-4">
+                        
+                        <form method="POST" novalidate>
+                            {% csrf_token %}
+                            
+                            {% for field in form %}
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold text-secondary">{{ field.label }}</label>
+                                    
+                                    {% if field.name == 'rola' %}
+                                        <div class="d-flex gap-4 mt-1 mb-2">
+                                            {% for radio in field %}
+                                                <div class="form-check">
+                                                    {{ radio.tag }}
+                                                    <label class="form-check-label" for="{{ radio.id_for_label }}" style="cursor: pointer;">
+                                                        {{ radio.choice_label }}
+                                                    </label>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        {{ field }}
+                                    {% endif %}
+                                    
+                                    {% if field.errors %}
+                                        <div class="text-danger small mt-1">
+                                            <i class="fas fa-exclamation-circle"></i> {{ field.errors|striptags }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
 
-    <form method="POST">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Zarejestruj się</button>
-    </form>
+                            <div class="d-grid gap-2 mt-4 mb-2">
+                                <button type="submit" id="submitBtn" class="btn btn-secondary btn-lg">
+                                    Zarejestruj się <i class="fas fa-arrow-right ms-1"></i>
+                                </button>
+                            </div>
+                        </form>
 
-    <p>Masz już konto? <a href="{% url 'login' %}">Zaloguj się tutaj</a></p>
+                    </div>
+                    <div class="card-footer text-center py-3 bg-light">
+                        <div class="small">
+                            Masz już konto? <a href="{% url 'login' %}" id="loginLink" class="fw-bold text-decoration-none" style="color: #434145;">Zaloguj się tutaj</a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const radioButtons = document.querySelectorAll('input[name="rola"]');
+        const submitBtn = document.getElementById('submitBtn');
+        const cardHeader = document.getElementById('cardHeader');
+        const loginLink = document.getElementById('loginLink');
+
+        function zmienKolor() {
+          const wybranaRola = document.querySelector('input[name="rola"]:checked');
+          
+          if (!wybranaRola) {
+            return;
+          }
+
+          submitBtn.className = 'btn btn-lg';
+          cardHeader.className = 'card-header text-white text-center py-4';
+
+          if (wybranaRola.value === 'pacjent') {
+            submitBtn.classList.add('btn-pacbtn');
+            cardHeader.style.backgroundColor = '#9033d6';
+            loginLink.style.color = '#9033d6';
+          } else if (wybranaRola.value === 'fizjo') {
+            submitBtn.classList.add('btn-fizbtn');
+            cardHeader.style.backgroundColor = '#cb34d9';
+            loginLink.style.color = '#cb34d9';
+          }
+        }
+
+        radioButtons.forEach(radio => {
+          radio.addEventListener('change', zmienKolor);
+        });
+
+        zmienKolor();
+      });
+    </script>
 
 </body>
 </html>
