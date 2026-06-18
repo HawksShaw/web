@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 # Create your models here.
 class Fizjoterapeuta(models.Model):
@@ -28,7 +29,54 @@ class Pacjent(models.Model):
 
     def __str__(self):
         return f"{self.imie} {self.nazwisko}"
+
+class FizjoPacjent(models.Model):
+    fizjoterapeuta = models.ForeignKey(
+        'Fizjoterapeuta',
+        on_delete=models.CASCADE,
+        related_name='relacje_z_pacjentami'
+    )
+    pacjent = models.ForeignKey(
+        'Pacjent',
+        on_delete=models.CASCADE,
+        related_name='relacje_z_fizjo'
+    )
+
+    status_choices = [
+        ('oczekujacy', 'Oczekujący'),
+        ('zaakceptowany', 'Zaakceptowany'),
+    ]
     
+    status = models.CharField(max_length=20, choices=status_choices, default='zaakceptowany')
+    data_utworzenia = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('fizjoterapeuta', 'pacjent')
+        verbose_name = "Relacja fizjo-pacjent"
+        verbose_name_plural = "Relacje fizjo-pacjent"
+
+    def __str__(self):
+        return f"{self.fizjoterapeuta} -> {self.pacjent} ({self.get_status_display()})"
+    
+class TreningLog(models.Model):
+    pacjent = models.ForeignKey('Pacjent', on_delete=models.CASCADE, related_name='logi_treningow')
+    program = models.ForeignKey('Program', on_delete=models.SET_NULL, null=True, blank=True) 
+    data_wykonania = models.DateField(auto_now_add=True)
+
+    skala_bol = models.IntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(10)],
+        help_text="Oceń trudność treningu (odczuwany ból) w skali od 1 do 10"
+    )
+    pacjent_kom = models.TextField(blank=True, null=True, help_text="Opisz jak się czułeś podczas ćwiczeń.")
+
+    class Meta:
+        verbose_name = "Log Treningu"
+        verbose_name_plural = "Logi Treningów"
+        ordering = ['-data_wykonania']
+
+    def __str__(self):
+        return f"Trening {self.pacjent} - {self.data_wykonania}"
+
 class Program(models.Model):
     nazwa = models.CharField(max_length=200, verbose_name="Nazwa programu")
     opis = models.TextField(verbose_name="Opis")

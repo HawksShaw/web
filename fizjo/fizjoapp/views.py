@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import login, logout
-from .models import Fizjoterapeuta, Pacjent, Program, Wizyta
+from .models import Fizjoterapeuta, Pacjent, Program, Wizyta, FizjoPacjent
 from .forms import FizjoForm, PacjentForm, ProgramForm, RejestrForm, LoginForm
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
@@ -236,3 +236,13 @@ def pacjenci_fizjo(request):
 @login_required
 def programy_fizjo(request):
     return render(request, 'programy_fizjo.html')
+
+@login_required
+def pacjenci_fizjo(request):
+    fizjo = request.user.fizjoterapeuta
+    relacje = FizjoPacjent.objects.filter(fizjoterapeuta=fizjo, status='zaakceptowany')
+    moi_pacjenci = [relacja.pacjent for relacja in relacje]
+    context = {
+        'pacjenci' : moi_pacjenci
+    }
+    return render(request, 'pacjenci_fizjo.html', context)
