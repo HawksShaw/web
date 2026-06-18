@@ -33,28 +33,23 @@
           select: function (info) {
             if (
               confirm(
-                "Czy chcesz zarezerwować ten termin u dr " +
+                "Czy chcesz przejść do formularza rezerwacji dla dr " +
                   "{{ lekarz.username }}" +
-                  "?",
+                  " na ten termin?",
               )
             ) {
-              // TUTAJ ZMIANA: Wysyłamy rezerwację na API z ID lekarza
-              fetch("/api/add-appointment/" + lekarzId + "/", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  start: info.startStr,
-                  end: info.endStr,
-                }),
-              })
-                .then((response) => response.json())
-                .then((data) => {
-                  alert("Zapisano!");
-                  calendar.refetchEvents();
-                })
-                .catch((error) => console.error("Błąd:", error));
+              // ZMIANA: Zabezpieczamy daty funkcją encodeURIComponent
+              const bezpiecznyStart = encodeURIComponent(info.startStr);
+              const bezpiecznyEnd = encodeURIComponent(info.endStr);
+
+              const url =
+                "/rezerwacja/" +
+                lekarzId +
+                "/?start=" +
+                bezpiecznyStart +
+                "&end=" +
+                bezpiecznyEnd;
+              window.location.href = url;
             }
           },
         });

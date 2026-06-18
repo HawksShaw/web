@@ -132,15 +132,16 @@ def profil_lekarza(request, lekarz_id):
 # Zmieniamy API, żeby pobierało wizyty po ID lekarza z URL
 @login_required
 def get_wizyty_pacjent(request, lekarz_id):
+    # Pobieramy wizyty konkretnego lekarza
     wizyty = Wizyta.objects.filter(lekarz_id=lekarz_id)
     events = []
     for w in wizyty:
         events.append({
-            'title': 'Termin zajęty', # Pacjent nie powinien widzieć nazwisk innych pacjentów!
+            'title': 'Termin zajęty', # Wymuszamy domyślny tytuł bez zdradzania danych pacjenta
             'start': w.data_rozpoczecia.isoformat(),
             'end': w.data_zakonczenia.isoformat(),
-            'color': '#ff0000',
-            'display': 'background' # Fajny trik: robi całe tło na czerwono, uniemożliwiając kliknięcie
+            'color': '#ff0000'
+            # Upewniamy się, że nie ma tu parametru 'display': 'background'
         })
     return JsonResponse(events, safe=False)
 
@@ -187,3 +188,47 @@ def dodaj_wizyte(request):
             data_zakonczenia=data['end']
         )
         return JsonResponse({'status': 'Zapisano pomyślnie'})
+    
+@login_required
+def formularz_rezerwacji(request, lekarz_id):
+    lekarz = get_object_or_404(User, id=lekarz_id)
+    
+    if request.method == 'POST':
+        # ZABEZPIECZENIE: .replace(' ', '+') naprawia ucięty plus ze strefy czasowej
+        start = request.POST.get('start', '').replace(' ', '+')
+        end = request.POST.get('end', '').replace(' ', '+')
+        powod = request.POST.get('powod', '')
+        
+        Wizyta.objects.create(
+            lekarz=lekarz,
+            pacjent_nazwa=f"{request.user.username} - {powod}",
+            data_rozpoczecia=start,
+            data_zakonczenia=end
+        )
+        return redirect('profil_lekarza', lekarz_id=lekarz.id)
+        
+    else:
+        # To samo robimy przy pobieraniu danych z linku
+        start = request.GET.get('start', '').replace(' ', '+')
+        end = request.GET.get('end', '').replace(' ', '+')
+        
+        return render(request, 'formularz_rezerwacji.html', {
+            'lekarz': lekarz,
+            'start': start,
+            'end': end
+        })
+    
+@login_required
+def get_moje_wizyty(request):
+    # Szukamy wizyt, gdzie nazwa pacjenta zawiera username aktualnie zalogowanego użytkownika
+    wizyty = Wizyta.objects.filter(pacjent_nazwa__icontains=request.user.username)
+    
+    events = []
+    for w in wizyty:
+        events.append({
+            'title': f'Wizyta u dr {w.lekarz.username}', # Pacjent widzi do kogo idzie
+            'start': w.data_rozpoczecia.isoformat(),
+            'end': w.data_zakonczenia.isoformat(),
+            'color': '#0d6efd' # Niebieski kolor dla odróżnienia na panelu pacjenta
+        })
+    return JsonResponse(events, safe=False)

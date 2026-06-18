@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <title>Potwierdź rezerwację</title>
+  </head>
+  <body style="font-family: sans-serif; padding: 40px">
+    <div
+      style="
+        max-width: 500px;
+        margin: auto;
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+      "
+    >
+      <h2>Dokończ rezerwację</h2>
+      <p><strong>Lekarz:</strong> dr {{ lekarz.username }}</p>
+
+      <p><strong>Wybrany termin:</strong> {{ start }}</p>
+
+      <form method="POST">
+        {% csrf_token %}
+
+        <input type="hidden" name="start" value="{{ start }}" />
+        <input type="hidden" name="end" value="{{ end }}" />
+
+        <div style="margin-bottom: 20px; margin-top: 20px">
+          <label><strong>Powód wizyty / Notatka dla lekarza:</strong></label
+          ><br />
+          <textarea
+            name="powod"
+            rows="4"
+            style="width: 100%; margin-top: 5px"
+            placeholder="Wpisz dolegliwości..."
+          ></textarea>
+        </div>
+
+        <button
+          type="submit"
+          style="
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+          "
+        >
+          Potwierdź rezerwację
+        </button>
+
+        <a
+          href="{% url 'profil_lekarza' lekarz.id %}"
+          style="
+            display: block;
+            text-align: center;
+            margin-top: 15px;
+            color: #dc3545;
+            text-decoration: none;
+          "
+        >
+          Anuluj i wróć do kalendarza
+        </a>
+      </form>
+    </div>
+  </body>
+</html>

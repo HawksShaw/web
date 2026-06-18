@@ -21,4 +21,6 @@ urlpatterns = [
     path('api/add-appointment/<int:lekarz_id>/', views.dodaj_wizyte_pacjent, name='dodaj_wizyte_pacjent'),
     path('api/get-appointments/', views.get_wizyty, name='get_wizyty'),
     path('api/add-appointment/', views.dodaj_wizyte, name='dodaj_wizyte'),
+    path('rezerwacja/<int:lekarz_id>/', views.formularz_rezerwacji, name='formularz_rezerwacji'),
+    path('api/get-my-appointments/', views.get_moje_wizyty, name='get_moje_wizyty'),
 ]
