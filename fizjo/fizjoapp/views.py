@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.views import LoginView
@@ -8,8 +8,6 @@ from .forms import FizjoForm, PacjentForm, ProgramForm, RejestrForm, LoginForm
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 import json
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.models import User
 
 # Create your views here.
