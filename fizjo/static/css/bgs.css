@@ -1,0 +1,23 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.bg-login {
+    background-color: #9033d6;
+}
+
+.text-login {
+    color: #660fa8;
+}
+
+.btn-login {
+    background-color: #9033d6; /* Wpisz tu swój HEX */
+    border-color: #632294;
+    color: white;
+}
+
+.btn-login:hover {
+    background-color: #632294; /* Wpisz tu swój HEX */
+    border-color: #632294;
+    color: white;
+}

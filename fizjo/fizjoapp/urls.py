@@ -1,9 +1,11 @@
 from django.urls import path
 from . import views
+from .forms import LoginForm
 
 urlpatterns = [
     # Główne widoki
     path('', views.dashboard, name='dashboard'),
+    path('login/', views.CustomLoginView.as_view(), name='login'),
     path('panel-fizjo/', views.dashboard_fizjo, name='dashboard_fizjo'),
     path('panel-pacjent/', views.dashboard_pacjent, name='dashboard_pacjent'),
     path('rejestracja/', views.rejestracja, name='rejestracja'),
