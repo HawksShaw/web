@@ -224,3 +224,7 @@ def get_moje_wizyty(request):
             'color': '#0d6efd' # Niebieski kolor dla odróżnienia na panelu pacjenta
         })
     return JsonResponse(events, safe=False)
+
+@login_required
+def kalendarz_fizjo(request):
+    return render(request, 'kalendarz_fizjo.html')

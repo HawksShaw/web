@@ -11,10 +11,13 @@ urlpatterns = [
     path('rejestracja/', views.rejestracja, name='rejestracja'),
     path('wyloguj/', views.wyloguj, name='wyloguj'),
     
-    # Widoki formularzy (wymagane przez przyciski w dashboard.html)
+    # Widoki bloków dashboardów
     path('dodaj-fizjoterapeute/', views.dodaj_fizjoterapeute, name='dodaj_fizjoterapeute'),
     path('dodaj-pacjenta/', views.dodaj_pacjenta, name='dodaj_pacjenta'),
     path('dodaj-program/', views.dodaj_program, name='dodaj_program'),
+
+    # Hiperłącza do bloków w panel-fizjo
+    path('kalendarz-fizjo/', views.kalendarz_fizjo, name='kalendarz_fizjoterapeuty'),
 
     #Kalendarz
     path('lekarze/', views.wyszukiwarka_lekarzy, name='wyszukiwarka_lekarzy'),
