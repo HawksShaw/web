@@ -1,0 +1,32 @@
+<div class="container mt-5">
+  <h2>Twój Dashboard Pacjenta</h2>
+  <p>
+    Witaj, {{ request.user.username }}! Poniżej znajdziesz swoje plany
+    treningowe.
+  </p>
+
+  <div class="row mt-4">
+    {% for plan in plany %}
+    <div class="col-md-4 mb-3">
+      <div class="card p-3 shadow-sm">
+        <h4>{{ plan.nazwa }}</h4>
+        <p class="text-muted">Zalecone przez: {{ plan.fizjoterapeuta }}</p>
+        <p class="small">Data: {{ plan.data_utworzenia|date:"d.m.Y" }}</p>
+
+        <a
+          href="{% url 'szczegoly_planu' plan.id %}"
+          class="btn btn-primary w-100"
+        >
+          Otwórz plan i oceń ból
+        </a>
+      </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+      <p class="alert alert-info">
+        Nie masz obecnie przypisanych żadnych planów treningowych.
+      </p>
+    </div>
+    {% endfor %}
+  </div>
+</div>

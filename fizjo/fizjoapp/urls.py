@@ -21,7 +21,7 @@ urlpatterns = [
     path('pacjenci-fizjo/', views.pacjenci_fizjo, name='pacjenci_fizjo'),
     path('programy-fizjo/', views.programy_fizjo, name='programy_fizjo'),
 
-    #Kalendarz
+    # Kalendarz
     path('lekarze/', views.wyszukiwarka_lekarzy, name='wyszukiwarka_lekarzy'),
     path('lekarz/<int:lekarz_id>/', views.profil_lekarza, name='profil_lekarza'),
     path('api/get-appointments/<int:lekarz_id>/', views.get_wizyty_pacjent, name='get_wizyty_pacjent'),
@@ -30,4 +30,12 @@ urlpatterns = [
     path('api/add-appointment/', views.dodaj_wizyte, name='dodaj_wizyte'),
     path('rezerwacja/<int:lekarz_id>/', views.formularz_rezerwacji, name='formularz_rezerwacji'),
     path('api/get-my-appointments/', views.get_moje_wizyty, name='get_moje_wizyty'),
+    
+    # ======== NOWE ŚCIEŻKI DLA PLANÓW TRENINGOWYCH ========
+    path('plany/', views.plany_treningowe, name='plany_treningowe'),
+    path('plan/<int:plan_id>/', views.szczegoly_planu, name='szczegoly_planu'),
+    path('plan/<int:plan_id>/csv/', views.eksportuj_plan_csv, name='eksportuj_plan_csv'),
+    path('sukces/', views.strona_sukcesu, name='dashboard_sukces'),
+    path('dodaj-plan-treningowy/', views.dodaj_plan_treningowy, name='dodaj_plan_treningowy'),
+    path('programy-fizjo/<int:plan_id>/', views.szczegoly_planu_fizjo, name='szczegoly_planu_fizjo'),
 ]

@@ -9,6 +9,13 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 import json
 from django.contrib.auth.models import User
+from .models import PlanTreningowy
+import csv
+from django.http import HttpResponse
+from django.forms import modelformset_factory
+from .models import PlanTreningowy, OcenaCwiczenia, Cwiczenie
+from .forms import OcenaCwiczeniaForm
+from .forms import PlanTreningowyForm, CwiczenieFormSet
 
 # Create your views here.
 @login_required
@@ -230,10 +237,6 @@ def kalendarz_fizjo(request):
     return render(request, 'kalendarz_fizjo.html')
 
 @login_required
-def pacjenci_fizjo(request):
-    return render(request, 'pacjenci_fizjo.html')
-
-@login_required
 def programy_fizjo(request):
     return render(request, 'programy_fizjo.html')
 
@@ -246,3 +249,128 @@ def pacjenci_fizjo(request):
         'pacjenci' : moi_pacjenci
     }
     return render(request, 'pacjenci_fizjo.html', context)
+
+def eksportuj_plan_csv(request, plan_id):
+    plan = get_object_or_404(PlanTreningowy, id=plan_id)
+    
+    # Tworzymy obiekt HttpResponse z odpowiednim nagłówkiem CSV
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = f'attachment; filename="plan_{plan.id}.csv"'
+
+    writer = csv.writer(response)
+    # Nagłówki kolumn w pliku CSV
+    writer.writerow(['Nazwa ćwiczenia', 'Serie', 'Powtórzenia'])
+
+    # Zapisujemy każde ćwiczenie do wiersza
+    for cwiczenie in plan.cwiczenia.all():
+        writer.writerow([cwiczenie.nazwa_cwiczenia, cwiczenie.serie, cwiczenie.powtórzenia])
+
+    return response
+
+@login_required
+def szczegoly_planu(request, plan_id):
+    # ZMIANA: Tutaj też dodajemy .pacjent na końcu request.user
+    plan = get_object_or_404(PlanTreningowy, id=plan_id, pacjent=request.user.pacjent)
+    cwiczenia = plan.cwiczenia.all()
+    
+    # FormSet o wielkości równej liczbie ćwiczeń
+    OcenaFormSet = modelformset_factory(OcenaCwiczenia, form=OcenaCwiczeniaForm, extra=len(cwiczenia))
+
+    if request.method == 'POST':
+        formset = OcenaFormSet(request.POST)
+        if formset.is_valid():
+            instancje = formset.save(commit=False)
+            for i, form in enumerate(instancje):
+                form.cwiczenie = cwiczenia[i]
+                form.save()
+            return redirect('dashboard_sukces')
+    else:
+        formset = OcenaFormSet(queryset=OcenaCwiczenia.objects.none())
+
+    # Łączymy ćwiczenia z formularzami w pary przy pomocy zip()
+    zestaw = zip(cwiczenia, formset)
+
+    return render(request, 'szczegoly_planu.html', {
+        'plan': plan,
+        'zestaw': zestaw,  # Przekazujemy pod krótką nazwą
+        'formset': formset
+    })
+
+@login_required
+def plany_treningowe(request):
+    # ZMIANA: Dodajemy .pacjent na końcu request.user
+    plany = PlanTreningowy.objects.filter(pacjent=request.user.pacjent).order_by('-data_utworzenia')
+    
+    return render(request, 'plany_treningowe.html', {'plany': plany})
+
+@login_required
+def strona_sukcesu(request):
+    # Prosta strona wyświetlana po udanym zapisie bólu i uwag
+    return render(request, 'sukces.html')
+
+@login_required
+def dodaj_plan_treningowy(request):
+    # Ochrona: sprawdzamy, czy użytkownik to na pewno fizjoterapeuta
+    if not hasattr(request.user, 'fizjoterapeuta'):
+        return render(request, '403.html', status=403)
+
+    fizjo = request.user.fizjoterapeuta
+
+    if request.method == 'POST':
+        form = PlanTreningowyForm(request.POST)
+        
+        if form.is_valid():
+            # Zapisujemy plan, ale jeszcze nie pchamy do bazy (commit=False)
+            plan = form.save(commit=False)
+            plan.fizjoterapeuta = fizjo # Automatycznie przypisujemy zalogowanego fizjo
+            
+            # Wrzucamy dane z metody POST do FormSetu ćwiczeń przypisanych do tego planu
+            formset = CwiczenieFormSet(request.POST, instance=plan)
+            
+            if formset.is_valid():
+                plan.save()     # Zapisujemy plan w bazie
+                formset.save()  # Zapisujemy wszystkie powiązane ćwiczenia
+                
+                # Przekierowujemy fizjo z powrotem na dashboard po sukcesie
+                return redirect('dashboard_fizjo') 
+    else:
+        # Puste formularze do wyświetlenia na stronie
+        form = PlanTreningowyForm()
+        
+        # Opcjonalnie: ograniczenie listy pacjentów tylko do tych przypisanych do danego fizjo. 
+        # (Zależy od Twojego modelu FizjoPacjent, jeśli chcesz zostawić wszystkich - pomiń tę linię)
+        # form.fields['pacjent'].queryset = Pacjent.objects.filter(fizjopacjent__fizjoterapeuta=fizjo)
+
+        formset = CwiczenieFormSet()
+
+    return render(request, 'dodaj_plan_treningowy.html', {
+        'form': form,
+        'formset': formset
+    })
+
+@login_required
+def programy_fizjo(request):
+    # Sprawdzamy czy to fizjoterapeuta
+    if not hasattr(request.user, 'fizjoterapeuta'):
+        return render(request, '403.html', status=403)
+        
+    fizjo = request.user.fizjoterapeuta
+    # Pobieramy plany stworzone przez tego konkretnego fizjoterapeutę
+    plany = PlanTreningowy.objects.filter(fizjoterapeuta=fizjo).order_by('-data_utworzenia')
+    
+    return render(request, 'programy_fizjo.html', {'plany': plany})
+
+@login_required
+def szczegoly_planu_fizjo(request, plan_id):
+    if not hasattr(request.user, 'fizjoterapeuta'):
+        return render(request, '403.html', status=403)
+        
+    fizjo = request.user.fizjoterapeuta
+    # Upewniamy się, że fizjo może oglądać tylko SWOJE plany
+    plan = get_object_or_404(PlanTreningowy, id=plan_id, fizjoterapeuta=fizjo)
+    cwiczenia = plan.cwiczenia.all()
+    
+    return render(request, 'szczegoly_planu_fizjo.html', {
+        'plan': plan,
+        'cwiczenia': cwiczenia
+    })

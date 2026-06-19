@@ -1,0 +1,55 @@
+<div class="container mt-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Stwórz nowy plan treningowy</h2>
+    <a href="{% url 'dashboard_fizjo' %}" class="btn btn-outline-secondary"
+      >← Powrót</a
+    >
+  </div>
+
+  <form method="POST">
+    {% csrf_token %}
+
+    <div class="card p-4 mb-4 shadow-sm">
+      <h4 class="mb-3">Krok 1: Informacje o planie</h4>
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Wybierz pacjenta:</label>
+          {{ form.pacjent }}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Nazwa planu:</label>
+          {{ form.nazwa }}
+        </div>
+      </div>
+    </div>
+
+    <div class="card p-4 mb-4 shadow-sm">
+      <h4 class="mb-3">Krok 2: Dodaj ćwiczenia</h4>
+
+      {{ formset.management_form }} {% for cwiczenie_form in formset %}
+      <div class="row border-bottom mb-3 pb-2 align-items-end">
+        <div class="col-md-5 mb-2">
+          <label class="form-label">Nazwa ćwiczenia:</label>
+          {{ cwiczenie_form.nazwa_cwiczenia }}
+        </div>
+        <div class="col-md-3 mb-2">
+          <label class="form-label">Liczba serii:</label>
+          {{ cwiczenie_form.serie }}
+        </div>
+        <div class="col-md-4 mb-2">
+          <label class="form-label">Powtórzenia (np. '10' lub '30s'):</label>
+          {{ cwiczenie_form.powtórzenia }}
+        </div>
+      </div>
+      {% endfor %}
+      <p class="text-muted small">
+        Puste wiersze zostaną zignorowane. Wypełnij tylko te ćwiczenia, które są
+        potrzebne.
+      </p>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-lg w-100 mb-5">
+      Zapisz Plan Treningowy
+    </button>
+  </form>
+</div>
