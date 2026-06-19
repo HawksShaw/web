@@ -246,3 +246,11 @@ def pacjenci_fizjo(request):
         'pacjenci' : moi_pacjenci
     }
     return render(request, 'pacjenci_fizjo.html', context)
+
+@login_required
+def edit_fizjo(request):
+    return render(request, 'edit_fizjo.html')
+
+@login_required
+def log_fizjo(request):
+    return render(request, 'log_fizjo.html')

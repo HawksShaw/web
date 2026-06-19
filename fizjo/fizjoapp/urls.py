@@ -20,6 +20,8 @@ urlpatterns = [
     path('kalendarz-fizjo/', views.kalendarz_fizjo, name='kalendarz_fizjo'),
     path('pacjenci-fizjo/', views.pacjenci_fizjo, name='pacjenci_fizjo'),
     path('programy-fizjo/', views.programy_fizjo, name='programy_fizjo'),
+    path('log-fizjo/', views.log_fizjo, name='log_fizjo'),
+    path('edit-fizjo/', views.edit_fizjo, name='edit_fizjo'),
 
     #Kalendarz
     path('lekarze/', views.wyszukiwarka_lekarzy, name='wyszukiwarka_lekarzy'),

@@ -1,7 +1,9 @@
 .transition-hover {
-    transition: transform 0.2s;
+    transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }
 .transition-hover:hover {
     transform: translateY(-5px);
     box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15) !important;
+    background-color: #fdf2fd !important;
+    border: 2px solid rgba(140, 33, 150, 0.361) !important;
 }
