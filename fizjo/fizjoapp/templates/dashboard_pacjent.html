@@ -70,7 +70,7 @@
             <tr>
               <td class="fw-bold">{{ program.nazwa }}</td>
               <td>{{ program.opis }}</td>
-              <td>{{ program.data|date:"d.m.Y" }}</td>
+              <td>{{ program.data_startu|date:"d.m.Y" }}</td>
             </tr>
             {% empty %}
             <tr>
@@ -138,10 +138,13 @@
       <p class="text-muted">
         Przejdź tutaj, aby sprawdzić swoje ćwiczenia i ocenić ból po treningu.
       </p>
+<<<<<<< Updated upstream
       <a
         href="{% url 'plany_treningowe' %}"
         class="btn btn-primary btn-lg mt-2"
       >
+=======
+>>>>>>> Stashed changes
         🏋️ Zobacz swoje plany
       </a>
     </div>

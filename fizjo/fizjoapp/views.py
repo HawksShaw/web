@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
@@ -16,70 +17,65 @@ from django.forms import modelformset_factory
 from .models import PlanTreningowy, OcenaCwiczenia, Cwiczenie
 from .forms import OcenaCwiczeniaForm
 from .forms import PlanTreningowyForm, CwiczenieFormSet
+=======
+import json
+import csv
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import LoginView
+from django.contrib.auth import login, logout
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse, HttpResponse
+from django.utils import timezone
 
-# Create your views here.
+from .models import (
+    Fizjoterapeuta, Pacjent, FizjoPacjent, 
+    Program, GlobalCwiczenie, ProgramCwiczenie, 
+    TreningLog, ZrobioneCwiczenia, Wizyta
+)
+from .forms import FizjoForm, PacjentForm, ProgramForm, RejestrForm, LoginForm, CwiczenieFormSet
+>>>>>>> Stashed changes
+
 @login_required
 def dashboard(request):
     if hasattr(request.user, 'fizjoterapeuta'):
         return redirect('dashboard_fizjo')
     elif hasattr(request.user, 'pacjent'):
         return redirect('dashboard_pacjent')
-    else:
-        return render(request, 'dashboard.html')
+    return render(request, 'dashboard.html')
 
 @login_required
 def dashboard_fizjo(request):
     if not hasattr(request.user, 'fizjoterapeuta'):
         return render(request, '403.html', status=403)
     
+    fizjo = request.user.fizjoterapeuta
     context = {
-        'fizjoterapeuci' : Fizjoterapeuta.objects.all(),
-        'pacjenci' : Pacjent.objects.all(),
-        'programy' : Program.objects.all(),
+        'moi_pacjenci_liczba': FizjoPacjent.objects.filter(fizjoterapeuta=fizjo, status='zaakceptowany').count(),
+        'aktywne_programy': Program.objects.filter(fizjoterapeuta=fizjo).count(),
+        'dzisiejsze_wizyty': Wizyta.objects.filter(fizjoterapeuta=fizjo, status='zatwierdzona').count(),
     }
     return render(request, 'dashboard_fizjo.html', context)
 
 @login_required
 def dashboard_pacjent(request):
-    # 1. Zabezpieczenie - tylko pacjent ma tu dostęp
     if not hasattr(request.user, 'pacjent'):
         return render(request, '403.html', status=403)
     
-    # 2. Pobieramy programy dla pacjenta
-    pacjent_programy = Program.objects.filter(pacjent=request.user.pacjent)
-
-    # 3. Pobieramy listę lekarzy 
-    # (Jeśli masz model profilu Lekarz, lepiej użyć: User.objects.filter(lekarz__isnull=False) żeby nie pokazywać na liście innych pacjentów)
-    lekarze = User.objects.all() 
-
-    # 4. Pakujemy WSZYSTKO do kontekstu
+    pacjent = request.user.pacjent
     context = {
-        'programy': pacjent_programy,
-        'lekarze': lekarze,  # <--- Dodałem tę linijkę!
+        'programy': Program.objects.filter(pacjent=pacjent),
+        'fizjoterapeuci': Fizjoterapeuta.objects.all()
     }
-    
     return render(request, 'dashboard_pacjent.html', context)
 
-def dodaj_element(request, form_class, szablon_tytul):
-    form = form_class(request.POST or None)
-    if request.method == 'POST' and form.is_valid():
-        form.save()
-        return redirect('dashboard')
-    
-    return render(request, 'formularz.html', {'form': form, 'tytul': szablon_tytul})
+class CustomLoginView(LoginView):
+    template_name = 'registration/login.html'
+    form_class = LoginForm
 
-@login_required
-def dodaj_fizjoterapeute(request):
-    return dodaj_element(request, FizjoForm, "Dodaj Fizjoterapeutę")
-
-@login_required
-def dodaj_pacjenta(request):
-    return dodaj_element(request, PacjentForm, "Dodaj Pacjenta")
-
-@login_required
-def dodaj_program(request):
-    return dodaj_element(request, ProgramForm, "Przypisz Program Ćwiczeniowy")
-
+def wyloguj(request):
+    logout(request)
+    return redirect('login')
 
 def rejestracja(request):
     if request.method == "POST":
@@ -90,46 +86,94 @@ def rejestracja(request):
             user.first_name = form.cleaned_data['imie']
             user.last_name = form.cleaned_data['nazwisko']
             user.save()
+<<<<<<< Updated upstream
             if rola == 'fizjo':
                 Fizjoterapeuta.objects.create(user=user, imie=user.first_name, nazwisko=user.last_name, specka="Do uzupełnienia", tytul="Do uzupełnienia")
             else:
                 Pacjent.objects.create(user=user, imie=user.first_name, nazwisko=user.last_name, email=user.email)
 
+=======
+            
+            if rola == 'fizjo':
+                Fizjoterapeuta.objects.create(
+                    user=user, imie=user.first_name, nazwisko=user.last_name, 
+                    specka="Do uzupełnienia", tytul="mgr"
+                )
+            else:
+                Pacjent.objects.create(
+                    user=user, imie=user.first_name, nazwisko=user.last_name, email=user.email
+                )
+>>>>>>> Stashed changes
             login(request, user)
             return redirect('dashboard')
     else:
         form = RejestrForm()
-    return render(request, 'registration/rejestracja.html', {'form':form})
+    return render(request, 'registration/rejestracja.html', {'form': form})
 
+<<<<<<< Updated upstream
 
 def wyloguj(request):
     logout(request)
     return redirect('login')
+=======
+>>>>>>> Stashed changes
 
 class CustomLoginView(LoginView):
     template_name = 'registration/login.html'
     form_class = LoginForm
 @login_required
+<<<<<<< Updated upstream
 def wyszukiwarka_lekarzy(request):
     fraza = request.GET.get('szukaj', '')
     if fraza:
         lekarze = User.objects.filter(username__icontains=fraza)
     else:
         lekarze = User.objects.all()
+=======
+def wykonaj_dzisiejszy_trening(request, program_id):
+    pacjent = get_object_or_404(Pacjent, user=request.user)
+    program = get_object_or_404(Program, id=program_id, pacjent=pacjent)
+    
+    dzisiaj = timezone.now().date()
+    
+    if TreningLog.objects.filter(pacjent=pacjent, program=program, data_wykonania=dzisiaj).exists():
+        return render(request, 'sukces.html', {'wiadomosc': 'Trening z dzisiaj został już zapisany!'})
+
+    cwiczenia_w_placu = program.cwiczenia.all()
+
+    if request.method == 'POST':
+        bol = request.POST.get('skala_bol')
+        komentarz = request.POST.get('pacjent_kom', '')
+>>>>>>> Stashed changes
         
-    return render(request, 'lista_lekarzy.html', {'lekarze': lekarze, 'fraza': fraza})
+        nowy_log = TreningLog.objects.create(
+            pacjent=pacjent,
+            program=program,
+            skala_bol=bol,
+            pacjent_kom=komentarz
+        )
+        for cw in cwiczenia_w_placu:
+            czy_zrobione = request.POST.get(f'cwiczenie_{cw.id}') == 'on'
+            ZrobioneCwiczenia.objects.create(
+                trening_log=nowy_log,
+                cwiczenie_program=cw,
+                wykonane=czy_zrobione
+            )
+        return redirect('dashboard_sukces')
 
-# 2. Profil konkretnego lekarza z kalendarzem
+    return render(request, 'wykonaj_trening.html', {
+        'program': program, 
+        'cwiczenia': cwiczenia_w_placu
+    })
+
+
 @login_required
-def profil_lekarza(request, lekarz_id):
-    lekarz = get_object_or_404(User, id=lekarz_id)
-    return render(request, 'profil_lekarza.html', {'lekarz': lekarz})
+def strona_sukces(request):
+    return render(request, 'sukces.html', {'wiadomosc': 'Dobra robota! Raport ćwiczenia pomyślnie wysłany do Twojego fizjoterapeuty.'})
 
 
-# --- ZMIANY W API KALENDARZA ---
-
-# Zmieniamy API, żeby pobierało wizyty po ID lekarza z URL
 @login_required
+<<<<<<< Updated upstream
 def get_wizyty_pacjent(request, lekarz_id):
     # Pobieramy wizyty konkretnego lekarza
     wizyty = Wizyta.objects.filter(lekarz_id=lekarz_id)
@@ -142,35 +186,68 @@ def get_wizyty_pacjent(request, lekarz_id):
             'color': '#ff0000'
             # Upewniamy się, że nie ma tu parametru 'display': 'background'
         })
+=======
+def log_fizjo(request):
+    if not hasattr(request.user, 'fizjoterapeuta'):
+        return render(request, '403.html', status=403)
+    
+    fizjo = request.user.fizjoterapeuta
+    
+    wpisy = TreningLog.objects.filter(
+        program__fizjoterapeuta=fizjo
+    ).select_related('pacjent', 'program').prefetch_related('wykonane_cwiczenia__cwiczenie_program__cwiczenie_bazowe')
+
+    return render(request, 'log_fizjo.html', {'wpisy': wpisy})
+
+@login_required
+def wyszukiwarka_fizjo(request):
+    fraza = request.GET.get('szukaj', '')
+    fizjo_lista = Fizjoterapeuta.objects.filter(nazwisko__icontains=fraza) if fraza else Fizjoterapeuta.objects.all()
+    return render(request, 'lista_fizjo.html', {'fizjoterapeuci': fizjo_lista, 'fraza': fraza})
+
+@login_required
+def profil_fizjo(request, fizjo_id):
+    fizjo = get_object_or_404(Fizjoterapeuta, id=fizjo_id)
+    return render(request, 'profil_lekarza.html', {'lekarz': fizjo}) # DO ZMIANY 'lekarz' NA 'fizjo', ZOSTAWIONE NA RAZIE ŻEBY DZIAŁAŁO
+
+@login_required
+def get_wizyty_pacjent(request, fizjo_id):
+    wizyty = Wizyta.objects.filter(fizjoterapeuta_id=fizjo_id, status='zatwierdzona')
+    events = [{'title': 'Zajęte', 'start': w.data_rozpoczecia.isoformat(), 'end': w.data_zakonczenia.isoformat(), 'color': '#dc3545'} for w in wizyty]
+>>>>>>> Stashed changes
     return JsonResponse(events, safe=False)
 
 @csrf_exempt
 @login_required
-def dodaj_wizyte_pacjent(request, lekarz_id):
+def dodaj_wizyte_pacjent(request, fizjo_id):
     if request.method == 'POST':
         data = json.loads(request.body)
+        pacjent = get_object_or_404(Pacjent, user=request.user)
         
         Wizyta.objects.create(
-            lekarz_id=lekarz_id,
-            pacjent_nazwa=request.user.username, # Zapisujemy, który pacjent to kliknął!
+            fizjoterapeuta_id=fizjo_id,
+            pacjent=pacjent,
             data_rozpoczecia=data['start'],
-            data_zakonczenia=data['end']
+            data_zakonczenia=data['end'],
+            status='propozycja'
         )
-        return JsonResponse({'status': 'Zapisano pomyślnie'})
-    
-# --- API DLA PANELU FIZJOTERAPEUTY (Bez ID w adresie) ---
+        return JsonResponse({'status': 'Wysłano propozycję wizyty!'})
 
 @login_required
 def get_wizyty(request):
-    # Pobiera wizyty, gdzie lekarzem jest aktualnie zalogowany fizjoterapeuta
-    wizyty = Wizyta.objects.filter(lekarz_id=request.user.id)
+    fizjo = request.user.fizjoterapeuta
+    wizyty = Wizyta.objects.filter(fizjoterapeuta=fizjo)
+    
+    # Kolorowanie kalendarza u fizjo: żółty = propozycja, zielony = pewniak
     events = []
     for w in wizyty:
+        kolor = '#ffc107' if w.status == 'propozycja' else '#198754'
         events.append({
-            'title': w.pacjent_nazwa, # Fizjo widzi imię pacjenta
+            'id': w.id,
+            'title': f"{w.pacjent} ({w.get_status_display()})",
             'start': w.data_rozpoczecia.isoformat(),
             'end': w.data_zakonczenia.isoformat(),
-            'color': '#ff0000'
+            'color': kolor
         })
     return JsonResponse(events, safe=False)
 
@@ -179,13 +256,15 @@ def get_wizyty(request):
 def dodaj_wizyte(request):
     if request.method == 'POST':
         data = json.loads(request.body)
-        
+        # Szybka blokada własnego kalendarza przez fizjo
         Wizyta.objects.create(
-            lekarz_id=request.user.id, # Przypisuje zalogowanego fizjo
-            pacjent_nazwa="Zablokowane przez fizjoterapeutę", # Jeśli fizjo sam wyklika termin
+            fizjoterapeuta=request.user.fizjoterapeuta,
+            pacjent=Pacjent.objects.first(), # Tymczasowe przypisanie techniczne
             data_rozpoczecia=data['start'],
-            data_zakonczenia=data['end']
+            data_zakonczenia=data['end'],
+            status='zatwierdzona'
         )
+<<<<<<< Updated upstream
         return JsonResponse({'status': 'Zapisano pomyślnie'})
     
 @login_required
@@ -239,11 +318,15 @@ def kalendarz_fizjo(request):
 @login_required
 def programy_fizjo(request):
     return render(request, 'programy_fizjo.html')
+=======
+        return JsonResponse({'status': 'Zablokowano termin'})
+>>>>>>> Stashed changes
 
 @login_required
 def pacjenci_fizjo(request):
     fizjo = request.user.fizjoterapeuta
     relacje = FizjoPacjent.objects.filter(fizjoterapeuta=fizjo, status='zaakceptowany')
+<<<<<<< Updated upstream
     moi_pacjenci = [relacja.pacjent for relacja in relacje]
     context = {
         'pacjenci' : moi_pacjenci
@@ -318,12 +401,41 @@ def strona_sukcesu(request):
 @login_required
 def dodaj_plan_treningowy(request):
     # Ochrona: sprawdzamy, czy użytkownik to na pewno fizjoterapeuta
+=======
+    return render(request, 'pacjenci_fizjo.html', {'pacjenci': [r.pacjent for r in relacje]})
+
+@login_required
+def programy_fizjo(request):
+    fizjo = request.user.fizjoterapeuta
+    return render(request, 'programy_fizjo.html', {'programy': Program.objects.filter(fizjoterapeuta=fizjo)})
+
+@login_required
+def kalendarz_fizjo(request): return render(request, 'kalendarz_fizjo.html')
+
+@login_required
+def edit_fizjo(request): return render(request, 'edit_fizjo.html')
+
+def eksportuj_plan_csv(request, program_id):
+    program = get_object_or_404(Program, id=program_id)
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = f'attachment; filename="program_{program.nazwa}.csv"'
+    writer = csv.writer(response)
+    writer.writerow(['Ćwiczenie', 'Serie', 'Powtórzenia'])
+    for cw in program.cwiczenia.all():
+        writer.writerow([cw.cwiczenie_bazowe.nazwa, cw.serie, cw.powtorzenia])
+    return response
+
+
+@login_required
+def dodaj_program(request):
+>>>>>>> Stashed changes
     if not hasattr(request.user, 'fizjoterapeuta'):
         return render(request, '403.html', status=403)
 
     fizjo = request.user.fizjoterapeuta
 
     if request.method == 'POST':
+<<<<<<< Updated upstream
         form = PlanTreningowyForm(request.POST)
         
         if form.is_valid():
@@ -348,12 +460,27 @@ def dodaj_plan_treningowy(request):
         # (Zależy od Twojego modelu FizjoPacjent, jeśli chcesz zostawić wszystkich - pomiń tę linię)
         # form.fields['pacjent'].queryset = Pacjent.objects.filter(fizjopacjent__fizjoterapeuta=fizjo)
 
+=======
+        form = ProgramForm(request.POST)
+        if form.is_valid():
+            program = form.save(commit=False)
+            program.fizjoterapeuta = fizjo # Przypisuje zalogowanego fizjo
+            
+            formset = CwiczenieFormSet(request.POST, instance=program)
+            if formset.is_valid():
+                program.save()
+                formset.save()
+                return redirect('dashboard_fizjo')
+    else:
+        form = ProgramForm()
+>>>>>>> Stashed changes
         formset = CwiczenieFormSet()
 
     return render(request, 'dodaj_plan_treningowy.html', {
         'form': form,
         'formset': formset
     })
+<<<<<<< Updated upstream
 
 @login_required
 def programy_fizjo(request):
@@ -381,3 +508,5 @@ def szczegoly_planu_fizjo(request, plan_id):
         'plan': plan,
         'cwiczenia': cwiczenia
     })
+=======
+>>>>>>> Stashed changes
