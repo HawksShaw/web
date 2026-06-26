@@ -1,0 +1,48 @@
+<div class="container mt-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Raport: {{ plan.nazwa }}</h2>
+    <a href="{% url 'programy_fizjo' %}" class="btn btn-outline-secondary"
+      >← Wróć do listy planów</a
+    >
+  </div>
+
+  <h5 class="text-muted mb-4">
+    Pacjent: {{ plan.pacjent.imie }} {{ plan.pacjent.nazwisko }}
+  </h5>
+
+  {% for cwiczenie in cwiczenia %}
+  <div
+    class="card mb-3 p-3 shadow-sm border-start border-4 {% if cwiczenie.ocena and cwiczenie.ocena.skala_bolu > 5 %}border-danger{% else %}border-success{% endif %}"
+  >
+    <div class="row">
+      <div class="col-md-5">
+        <h5>{{ cwiczenie.nazwa_cwiczenia }}</h5>
+        <p class="mb-0 text-muted">
+          Serie: {{ cwiczenie.serie }} | Powtórzenia: {{ cwiczenie.powtórzenia
+          }}
+        </p>
+      </div>
+      <div class="col-md-7 border-start">
+        {% if cwiczenie.ocena %}
+        <p class="mb-1">
+          <strong>Zgłoszony ból:</strong>
+          <span
+            class="badge {% if cwiczenie.ocena.skala_bolu > 5 %}bg-danger{% else %}bg-success{% endif %} fs-6"
+          >
+            {{ cwiczenie.ocena.skala_bolu }} / 10
+          </span>
+        </p>
+        <p class="mb-0">
+          <strong>Uwagi pacjenta:</strong>
+          {{ cwiczenie.ocena.uwagi|default:"Brak uwag." }}
+        </p>
+        {% else %}
+        <p class="text-muted mt-2">
+          <em>Pacjent nie ocenił jeszcze tego ćwiczenia.</em>
+        </p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>

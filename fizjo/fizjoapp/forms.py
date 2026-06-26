@@ -2,6 +2,8 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User
 from .models import Fizjoterapeuta, Pacjent, Program
+from .models import PlanTreningowy, Cwiczenie
+from django.forms import inlineformset_factory
 
 class RejestrForm(UserCreationForm):
     username = forms.CharField(
@@ -69,3 +71,40 @@ class LoginForm(AuthenticationForm):
         self.fields['password'].label = "Hasło"
         self.fields['username'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Wpisz swój login...'})
         self.fields['password'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Wpisz hasło...'})
+
+from .models import OcenaCwiczenia
+
+class OcenaCwiczeniaForm(forms.ModelForm):
+    class Meta:
+        model = OcenaCwiczenia
+        fields = ['skala_bolu', 'uwagi']
+        widgets = {
+            # Zmieniamy zwykłe pole tekstowe na suwak od 0 do 10
+            'skala_bolu': forms.NumberInput(attrs={
+                'type': 'range', 'min': '0', 'max': '10', 'class': 'form-range'
+            }),
+            'uwagi': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Np. kłucie w kolanie przy 3 serii...'}),
+        }
+
+class PlanTreningowyForm(forms.ModelForm):
+    class Meta:
+        model = PlanTreningowy
+        fields = ['pacjent', 'nazwa'] # Fizjoterapeutę dodamy automatycznie w widoku
+        widgets = {
+            'pacjent': forms.Select(attrs={'class': 'form-select'}),
+            'nazwa': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Np. Powrót po kontuzji ACL'}),
+        }
+
+# Tworzymy powiązane formularze dla ćwiczeń (extra=3 oznacza, że domyślnie pojawią się 3 puste wiersze na ćwiczenia)
+CwiczenieFormSet = inlineformset_factory(
+    PlanTreningowy, 
+    Cwiczenie, 
+    fields=['nazwa_cwiczenia', 'serie', 'powtórzenia'],
+    extra=3, 
+    can_delete=False,
+    widgets={
+        'nazwa_cwiczenia': forms.TextInput(attrs={'class': 'form-control'}),
+        'serie': forms.NumberInput(attrs={'class': 'form-control'}),
+        'powtórzenia': forms.TextInput(attrs={'class': 'form-control'}),
+    }
+)

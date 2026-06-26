@@ -133,5 +133,17 @@
         calendar.render();
       });
     </script>
+    <div class="card p-4 shadow-sm mb-4 text-center">
+      <h3>Twoje Plany Treningowe</h3>
+      <p class="text-muted">
+        Przejdź tutaj, aby sprawdzić swoje ćwiczenia i ocenić ból po treningu.
+      </p>
+      <a
+        href="{% url 'plany_treningowe' %}"
+        class="btn btn-primary btn-lg mt-2"
+      >
+        🏋️ Zobacz swoje plany
+      </a>
+    </div>
   </body>
 </html>

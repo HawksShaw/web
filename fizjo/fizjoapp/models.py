@@ -99,3 +99,27 @@ class Wizyta(models.Model):
 
     def __str__(self):
         return f"{self.pacjent_nazwa} - {self.data_rozpoczecia}"
+    
+class PlanTreningowy(models.Model):
+    fizjoterapeuta = models.ForeignKey('Fizjoterapeuta', on_delete=models.CASCADE, related_name='plany')
+    pacjent = models.ForeignKey('Pacjent', on_delete=models.CASCADE, related_name='plany')
+    nazwa = models.CharField(max_length=200)
+    data_utworzenia = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.nazwa} - {self.pacjent}"
+
+class Cwiczenie(models.Model):
+    plan = models.ForeignKey(PlanTreningowy, on_delete=models.CASCADE, related_name='cwiczenia')
+    nazwa_cwiczenia = models.CharField(max_length=255)
+    serie = models.IntegerField(default=3)
+    powtórzenia = models.CharField(max_length=50) # "10", "12-15", "30s"
+
+    def __str__(self):
+        return self.nazwa_cwiczenia
+
+class OcenaCwiczenia(models.Model):
+    cwiczenie = models.OneToOneField(Cwiczenie, on_delete=models.CASCADE, related_name='ocena')
+    skala_bolu = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(10)])
+    uwagi = models.TextField(blank=True, null=True)
+    data_oceny = models.DateTimeField(auto_now_add=True)
