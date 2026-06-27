@@ -4,8 +4,15 @@
     <p>
       Twój fizjoterapeuta otrzymał Twój feedback dotyczący dzisiejszych ćwiczeń.
     </p>
-    <a href="{% url 'plany_treningowe' %}" class="btn btn-primary mt-4">
-      Wróć do swoich planów
-    </a>
+
+    <div class="mt-4">
+      <a href="{% url 'plany_treningowe' %}" class="btn btn-primary me-2">
+        Wróć do swoich planów
+      </a>
+
+      <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+        Wróć do Panelu Głównego
+      </a>
+    </div>
   </div>
 </div>

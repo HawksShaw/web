@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.db.models import Q
 import json
 import csv
+from django.http import JsonResponse
 
 from django.contrib.auth.models import User
 
@@ -567,3 +568,84 @@ def szczegoly_planu(request, plan_id):
 @login_required
 def strona_sukcesu(request):
     return render(request, 'sukces.html')
+
+# views.py
+from django.http import JsonResponse
+from .models import Pacjent, Cwiczenie, OcenaCwiczenia
+
+@login_required
+def profil_pacjenta(request, pacjent_id):
+    if not hasattr(request.user, 'fizjoterapeuta'):
+        return render(request, '403.html', status=403)
+    
+    # Upewniamy się, że pacjent istnieje
+    pacjent = get_object_or_404(Pacjent, id=pacjent_id)
+    
+    # Pobieramy wszystkie ćwiczenia powiązane z planami tego pacjenta
+    # Wyciągamy tylko te, które faktycznie otrzymały jakieś oceny
+    cwiczenia = Cwiczenie.objects.filter(
+        plan__pacjent=pacjent, 
+        oceny__isnull=False
+    ).distinct()
+
+    return render(request, 'profil_pacjenta.html', {
+        'pacjent': pacjent,
+        'cwiczenia': cwiczenia
+    })
+
+# views.py
+
+@login_required
+def profil_pacjenta(request, pacjent_id):
+    if not hasattr(request.user, 'fizjoterapeuta'):
+        return render(request, '403.html', status=403)
+    
+    pacjent = get_object_or_404(Pacjent, id=pacjent_id)
+    
+    # ZMIANA: Pobieramy tylko unikalne NAZWY ćwiczeń, które ten pacjent kiedykolwiek ocenił
+    cwiczenia_nazwy = Cwiczenie.objects.filter(
+        plan__pacjent=pacjent, 
+        oceny__isnull=False
+    ).values_list('nazwa_cwiczenia', flat=True).distinct()
+
+    return render(request, 'profil_pacjenta.html', {
+        'pacjent': pacjent,
+        'cwiczenia_nazwy': cwiczenia_nazwy  # Przekazujemy listę nazw (stringów)
+    })
+
+
+@login_required
+def api_wykres_bolu(request, pacjent_id):
+    if not hasattr(request.user, 'fizjoterapeuta'):
+        return JsonResponse({'error': 'Brak uprawnień'}, status=403)
+        
+    # Pobieramy nazwę ćwiczenia z parametru URL (?nazwa=...)
+    nazwa_cwiczenia = request.GET.get('nazwa', '')
+    
+    if not nazwa_cwiczenia:
+        return JsonResponse({'error': 'Nie podano nazwy ćwiczenia'}, status=400)
+        
+    # ZMIANA: Szukamy wszystkich ocen tego PACJENTA, gdzie ćwiczenie nazywa się tak samo
+    # Używamy __iexact, żeby ignorować wielkość liter (np. rdl i RDL połączy w jedno)
+    oceny = OcenaCwiczenia.objects.filter(
+        pacjent_id=pacjent_id,
+        cwiczenie__nazwa_cwiczenia__iexact=nazwa_cwiczenia
+    ).order_by('data_oceny')
+    
+    labels = [ocena.data_oceny.strftime('%d.%m.%Y') for ocena in oceny]
+    data = [ocena.skala_bolu for ocena in oceny]
+    
+    # Dodatkowo w dymku (tooltipie) możemy pokazać, z jakiego planu pochodziło dane ćwiczenie
+    uwagi = []
+    for ocena in oceny:
+        plan_nazwa = ocena.cwiczenie.plan.nazwa
+        tekst_uwagi = f"[{plan_nazwa}]"
+        if ocena.uwagi:
+            tekst_uwagi += f" - {ocena.uwagi}"
+        uwagi.append(tekst_uwagi)
+    
+    return JsonResponse({
+        'labels': labels,
+        'data': data,
+        'uwagi': uwagi
+    })
