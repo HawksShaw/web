@@ -101,7 +101,7 @@ CwiczenieFormSet = inlineformset_factory(
     Cwiczenie, 
     fields=['nazwa_cwiczenia', 'serie', 'powtórzenia'],
     extra=3, 
-    can_delete=False,
+    can_delete=True,
     widgets={
         'nazwa_cwiczenia': forms.TextInput(attrs={'class': 'form-control'}),
         'serie': forms.NumberInput(attrs={'class': 'form-control'}),
