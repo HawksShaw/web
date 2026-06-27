@@ -18,7 +18,8 @@
   {% for cwiczenie in cwiczenia %}
   {% with ostatnia=cwiczenie.oceny.first %}
   <div class="card mb-3 p-3 shadow-sm border-start border-4
-    {% if ostatnia and ostatnia.skala_bolu > 5 %}border-danger
+    {% if ostatnia and ostatnia.skala_bolu >= 7 %}border-danger
+    {% elif ostatnia and ostatnia.skala_bolu >= 4 %}border-warning text-dark
     {% elif ostatnia %}border-success
     {% else %}border-secondary{% endif %}">
     <div class="row">
@@ -32,7 +33,11 @@
         {% if ostatnia %}
         <p class="mb-1">
           <strong>Ostatni zgłoszony ból:</strong>
-          <span class="badge fs-6 {% if ostatnia.skala_bolu > 5 %}bg-danger{% else %}bg-success{% endif %}">
+          <span class="badge fs-6
+          {% if ostatnia.skala_bolu >= 7 %}bg-danger
+          {% elif ostatnia.skala_bolu >= 4 %}bg-warning text-dark
+          {% else %}bg-success
+          {% endif %}">
             {{ ostatnia.skala_bolu }} / 10
           </span>
           <small class="text-muted ms-2">{{ ostatnia.data_oceny|date:"d.m.Y H:i" }}</small>
@@ -52,7 +57,11 @@
               <tr>
                 <td>{{ o.data_oceny|date:"d.m.Y" }}</td>
                 <td>
-                  <span class="badge {% if o.skala_bolu > 5 %}bg-danger{% else %}bg-success{% endif %}">
+                  <span class="badge 
+                  {% if o.skala_bolu >= 7 %}bg-danger
+                  {% elif o.skala_bolu >= 4 %}bg-warning text-dark
+                  {% else %}bg-success
+                  {% endif %}">
                     {{ o.skala_bolu }}/10
                   </span>
                 </td>

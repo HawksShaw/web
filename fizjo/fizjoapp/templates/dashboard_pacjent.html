@@ -107,28 +107,7 @@
           locale: "pl",
           events: "/api/get-my-appointments/",
 
-          // 2. Co się dzieje, gdy pacjent zaznaczy wolny termin
-          select: function (info) {
-            if (confirm("Czy chcesz zarezerwować ten termin?")) {
-              // Wysyłamy dane do bazy (Django: dodaj_wizyte)
-              fetch("/api/add-appointment/", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  start: info.startStr,
-                  end: info.endStr,
-                }),
-              })
-                .then((response) => response.json())
-                .then((data) => {
-                  alert("Zapisano!");
-                  calendar.refetchEvents(); // Odśwież kalendarz, żeby pokazał czerwoną blokadę
-                })
-                .catch((error) => console.error("Błąd:", error));
-            }
-          },
+
         });
         calendar.render();
       });
