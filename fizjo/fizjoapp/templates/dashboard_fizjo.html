@@ -49,13 +49,18 @@
                 <div class="d-flex align-items-center mb-3">
                   <i class="fas fa-calendar fa-3x me-4" style="color:#cb34d9"></i>
                   <div>
-                    <h4 class="card-title mb-0">{{ nadchodzace_wizyty_count }} wizyt</h4>
+                    {% if nadchodzace_wizyty_count == 1 %}
+                      <h4 class="card-title mb-0">{{ nadchodzace_wizyty_count }} wizyta</h4>
+                    {% else %}
+                      <h4 class="card-title mb-0">{{ nadchodzace_wizyty_count }} wizyt</h4>
+                    {% endif %}
+
                     {% if oczekujace_count %}
                     <span class="badge bg-warning text-dark">{{ oczekujace_count }} do potwierdzenia</span>
                     {% endif %}
                   </div>
                 </div>
-                <p class="card-text text-muted mb-0">Nadchodzących zaakceptowanych wizyt.</p>
+                <p class="card-text text-muted mb-0">Sprawdź nadchodzące wizyty.</p>
               </div>
             </div>
           </a>
@@ -68,7 +73,11 @@
                 <div class="d-flex align-items-center mb-3">
                   <i class="fas fa-user-check fa-3x me-4" style="color:#cb34d9"></i>
                   <div>
+                    {% if moi_pacjenci_count == 1 %}
+                    <h4 class="card-title mb-0">{{ moi_pacjenci_count }} pacjent</h4>
+                    {% else %}
                     <h4 class="card-title mb-0">{{ moi_pacjenci_count }} pacjentów</h4>
+                    {% endif %}
                   </div>
                 </div>
                 <p class="card-text text-muted mb-0">Aktualnie korzysta z Twojego programu leczenia.</p>
@@ -84,7 +93,11 @@
                 <div class="d-flex align-items-center mb-3">
                   <i class="fas fa-clipboard-list fa-3x me-4" style="color:#cb34d9"></i>
                   <div>
+                    {% if moje_plany_count == 1 %}
+                    <h4 class="card-title mb-0">{{ moje_plany_count }} plan</h4>
+                    {% else %}
                     <h4 class="card-title mb-0">{{ moje_plany_count }} planów</h4>
+                    {% endif %}
                   </div>
                 </div>
                 <p class="card-text text-muted mb-0">Ilość Twoich planów używanych przez pacjentów.</p>
@@ -105,7 +118,7 @@
                     <h4 class="card-title mb-0">Sprawdź aktywność pacjentów</h4>
                   </div>
                 </div>
-                <p class="card-text text-muted mb-0">Zapisy wszystkich ocen ćwiczeń przesłanych przez Twoich pacjentów.</p>
+                <p class="card-text text-muted mb-0">Zapisy wszystkich ćwiczeń wykonanych przez Twoich pacjentów.</p>
               </div>
             </div>
           </a>
@@ -121,7 +134,7 @@
                     <h4 class="card-title mb-0">Edytuj własne programy</h4>
                   </div>
                 </div>
-                <p class="card-text text-muted mb-0">Dodaj, usuń i edytuj utworzone programy oraz zawarte w nich ćwiczenia.</p>
+                <p class="card-text text-muted mb-0">Dodaj, usuń lub edytuj utworzone przez Ciebie programy oraz zawarte w nich ćwiczenia.</p>
               </div>
             </div>
           </a>
