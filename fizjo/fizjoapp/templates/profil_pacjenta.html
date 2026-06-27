@@ -1,0 +1,115 @@
+<div class="container mt-5">
+  <h2>Profil pacjenta: {{ pacjent.imie }} {{ pacjent.nazwisko }}</h2>
+  <a href="{% url 'pacjenci_fizjo' %}" class="btn btn-outline-secondary mb-4"
+    >← Wróć do listy</a
+  >
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h5 class="card-title">Wykres ogólny bólu dla ćwiczenia</h5>
+
+      <div class="mb-3">
+        <label for="cwiczenieSelect" class="form-label"
+          >Wybierz ćwiczenie, aby zobaczyć historię zmian:</label
+        >
+        <select id="cwiczenieSelect" class="form-select">
+          <option value="">-- Wybierz ćwiczenie --</option>
+          {% for nazwa in cwiczenia_nazwy %}
+          <option value="{{ nazwa }}">{{ nazwa }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <canvas id="wykresBolu" style="max-height: 400px; display: none"></canvas>
+      <p id="brakDanychMsg" class="text-muted mt-3">
+        Wybierz ćwiczenie, aby zobaczyć wykres zbiorczy ze wszystkich planów.
+      </p>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const select = document.getElementById("cwiczenieSelect");
+    const ctx = document.getElementById("wykresBolu").getContext("2d");
+    const canvasEl = document.getElementById("wykresBolu");
+    const msgEl = document.getElementById("brakDanychMsg");
+
+    let chartInstance = null;
+
+    select.addEventListener("change", function () {
+      const nazwaCwiczenia = this.value;
+
+      if (!nazwaCwiczenia) {
+        canvasEl.style.display = "none";
+        msgEl.style.display = "block";
+        msgEl.textContent =
+          "Wybierz ćwiczenie, aby zobaczyć wykres zbiorczy ze wszystkich planów.";
+        if (chartInstance) chartInstance.destroy();
+        return;
+      }
+
+      // ZMIANA URL: Strzelamy do id pacjenta i doklejamy nazwę ćwiczenia w bezpieczny sposób (encodeURIComponent)
+      const url = `/api/wykres-bolu/{{ pacjent.id }}/?nazwa=${encodeURIComponent(nazwaCwiczenia)}`;
+
+      fetch(url)
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.data.length === 0) {
+            canvasEl.style.display = "none";
+            msgEl.style.display = "block";
+            msgEl.textContent = "Brak ocen dla tego ćwiczenia.";
+            return;
+          }
+
+          canvasEl.style.display = "block";
+          msgEl.style.display = "none";
+
+          if (chartInstance) {
+            chartInstance.destroy();
+          }
+
+          chartInstance = new Chart(ctx, {
+            type: "line",
+            data: {
+              labels: data.labels,
+              datasets: [
+                {
+                  label: `Poziom bólu przy: ${nazwaCwiczenia}`,
+                  data: data.data,
+                  borderColor: "rgba(220, 53, 69, 1)",
+                  backgroundColor: "rgba(220, 53, 69, 0.2)",
+                  borderWidth: 2,
+                  tension: 0.2,
+                  fill: true,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  max: 10,
+                  ticks: { stepSize: 1 },
+                },
+              },
+              plugins: {
+                tooltip: {
+                  callbacks: {
+                    // Pokazuje nazwę planu oraz ewentualne uwagi pacjenta
+                    afterLabel: function (context) {
+                      return data.uwagi[context.dataIndex];
+                    },
+                  },
+                },
+              },
+            },
+          });
+        })
+        .catch((error) => console.error("Błąd pobierania danych:", error));
+    });
+  });
+</script>

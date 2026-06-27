@@ -51,4 +51,8 @@ urlpatterns = [
     path('plan/<int:plan_id>/', views.szczegoly_planu, name='szczegoly_planu'),
     path('plan/<int:plan_id>/csv/', views.eksportuj_plan_csv, name='eksportuj_plan_csv'),
     path('sukces/', views.strona_sukcesu, name='dashboard_sukces'),
+
+    # Profil pacjenta z perspektywy fizjo
+    path('pacjent/<int:pacjent_id>/', views.profil_pacjenta, name='profil_pacjenta'),
+    path('api/wykres-bolu/<int:pacjent_id>/', views.api_wykres_bolu, name='api_wykres_bolu'),
 ]
