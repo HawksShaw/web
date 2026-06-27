@@ -1,10 +1,80 @@
-<!DOCTYPE html>
-<html>
-    <head>
-       <title>Edycja programów</title>
-        <meta charset="UTF-8">
-    </head>
-    <body>
-        <h1><b>To jest panel edycji programów - wszystko jest git</b></h1>
-    </body>
-</html>
+{% block content %}
+<div class="container mt-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-edit"></i> Zarządzaj planami treningowymi</h2>
+    <div>
+      <a
+        href="{% url 'dashboard_fizjo' %}"
+        class="btn btn-outline-secondary me-2"
+        >← Powrót</a
+      >
+      <a href="{% url 'dodaj_plan_treningowy' %}" class="btn btn-success">
+        + Dodaj nowy plan
+      </a>
+    </div>
+  </div>
+
+  <div class="card shadow-sm border-0">
+    <div class="card-body">
+      {% if plany %}
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Nazwa Planu</th>
+            <th>Pacjent</th>
+            <th>Data utworzenia</th>
+            <th class="text-end">Akcje</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for plan in plany %}
+          <tr>
+            <td><strong>{{ plan.nazwa }}</strong></td>
+            <td>{{ plan.pacjent.imie }} {{ plan.pacjent.nazwisko }}</td>
+            <td>{{ plan.data_utworzenia|date:"d.m.Y" }}</td>
+            <td class="text-end">
+              <a
+                href="{% url 'edytuj_plan_treningowy' plan.id %}"
+                class="btn btn-sm btn-warning text-white me-1"
+                >Edytuj</a
+              >
+              <a
+                href="{% url 'szczegoly_planu_fizjo' plan.id %}"
+                class="btn btn-sm btn-info text-white me-1"
+                >Szczegóły</a
+              >
+
+              <form
+                action="{% url 'usun_plan' plan.id %}"
+                method="POST"
+                class="d-inline"
+                onsubmit="
+                  return confirm(
+                    'Czy na pewno chcesz usunąć ten plan treningowy? Usunięcie planu usunie również przypisane do niego oceny. Tej operacji nie można cofnąć.',
+                  );
+                "
+              >
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-danger">
+                  Usuń
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="text-center py-5">
+        <p class="text-muted mb-3">
+          Nie masz jeszcze utworzonych żadnych planów treningowych.
+        </p>
+        <a href="{% url 'dodaj_plan_treningowy' %}" class="btn btn-primary"
+          >Stwórz pierwszy plan</a
+        >
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

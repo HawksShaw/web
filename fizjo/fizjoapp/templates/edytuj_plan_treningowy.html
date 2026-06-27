@@ -1,0 +1,20 @@
+<div class="container mt-5">
+  <h2>Edytuj plan: {{ plan.nazwa }}</h2>
+
+  <form method="POST" class="mt-4">
+    {% csrf_token %}
+
+    <h4>Nagłówek planu</h4>
+    {{ form.as_p }}
+
+    <h4 class="mt-4">Lista ćwiczeń</h4>
+    {{ formset.management_form }} {% for f in formset %}
+    <div class="border p-3 mb-3 bg-light rounded">{{ f.id }} {{ f.as_p }}</div>
+    {% endfor %}
+
+    <button type="submit" class="btn btn-success mt-3">Zapisz zmiany</button>
+    <a href="{% url 'edit_fizjo' %}" class="btn btn-outline-secondary mt-3"
+      >Anuluj</a
+    >
+  </form>
+</div>

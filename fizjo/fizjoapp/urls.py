@@ -55,4 +55,8 @@ urlpatterns = [
     # Profil pacjenta z perspektywy fizjo
     path('pacjent/<int:pacjent_id>/', views.profil_pacjenta, name='profil_pacjenta'),
     path('api/wykres-bolu/<int:pacjent_id>/', views.api_wykres_bolu, name='api_wykres_bolu'),
+
+    #Edycja planów
+    path('usun-plan/<int:plan_id>/', views.usun_plan, name='usun_plan'),
+    path('edytuj-plan/<int:plan_id>/', views.edytuj_plan_treningowy, name='edytuj_plan_treningowy'),
 ]
