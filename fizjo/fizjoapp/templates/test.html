@@ -188,11 +188,7 @@
       </table>
     </div>
   </div>
-    <canvas id="statystykiWyresu"
-      data-fizjo="{{ fizjoterapeuci|length }}"
-      data-pacjenci="{{ moi_pacjenci_count }}"
-      data-plany="{{ moje_plany_count }}">
-    </canvas>
+
   <script>
     // Tips toggle
     const toggleTipsBtn = document.getElementById('toggleTipsBtn');
@@ -208,23 +204,22 @@
     });
 
     // Chart – real data from Django
-    const canvas = document.getElementById('statystykiWyresu');
-    const iloscFizjo   = parseInt(canvas.dataset.fizjo);
-    const iloscPacjentow = parseInt(canvas.dataset.pacjenci);
-    const iloscPlanow  = parseInt(canvas.dataset.plany);
-
     const ctx = document.getElementById('statystykiWyresu').getContext('2d');
     new Chart(ctx, {
-     type: 'doughnut',
-     data: {
-       labels: ['Fizjoterapeuci', 'Pacjenci', 'Plany treningowe'],
-       datasets: [{
-         data: [iloscFizjo, iloscPacjentow, iloscPlanow],
-         backgroundColor: ['#198754', '#0d6efd', '#ffc107'],
-         borderWidth: 1,
-       }],
-     },
-     options: { responsive: true, plugins: { legend: { position: 'bottom' } } },
+      type: 'doughnut',
+      data: {
+        labels: ['Fizjoterapeuci', 'Pacjenci', 'Plany treningowe'],
+        datasets: [{
+          data: [
+            {{ fizjoterapeuci|length }},
+            {{ moi_pacjenci_count }},
+            {{ moje_plany_count }}
+          ],
+          backgroundColor: ['#198754', '#0d6efd', '#ffc107'],
+          borderWidth: 1,
+        }],
+      },
+      options: { responsive: true, plugins: { legend: { position: 'bottom' } } },
     });
 
     // Task list

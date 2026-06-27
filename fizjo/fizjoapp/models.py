@@ -9,9 +9,9 @@ class Fizjoterapeuta(models.Model):
     nazwisko = models.CharField(max_length=100, verbose_name="Nazwisko")
     specka = models.CharField(max_length=150, verbose_name="Specjalizacja")
     tytul = models.CharField(max_length=20, verbose_name="Tytuł Naukowy")
+
     def __str__(self):
         return f"{self.tytul} {self.imie} {self.nazwisko} ({self.specka})"
-    
 
 class Pacjent(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
@@ -41,12 +41,10 @@ class FizjoPacjent(models.Model):
         on_delete=models.CASCADE,
         related_name='relacje_z_fizjo'
     )
-
     status_choices = [
         ('oczekujacy', 'Oczekujący'),
         ('zaakceptowany', 'Zaakceptowany'),
     ]
-    
     status = models.CharField(max_length=20, choices=status_choices, default='zaakceptowany')
     data_utworzenia = models.DateTimeField(auto_now_add=True)
 
@@ -57,12 +55,12 @@ class FizjoPacjent(models.Model):
 
     def __str__(self):
         return f"{self.fizjoterapeuta} -> {self.pacjent} ({self.get_status_display()})"
-    
+
+
 class TreningLog(models.Model):
     pacjent = models.ForeignKey('Pacjent', on_delete=models.CASCADE, related_name='logi_treningow')
-    program = models.ForeignKey('Program', on_delete=models.SET_NULL, null=True, blank=True) 
+    program = models.ForeignKey('Program', on_delete=models.SET_NULL, null=True, blank=True)
     data_wykonania = models.DateField(auto_now_add=True)
-
     skala_bol = models.IntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(10)],
         help_text="Oceń trudność treningu (odczuwany ból) w skali od 1 do 10"
@@ -90,15 +88,38 @@ class Program(models.Model):
 
     def __str__(self):
         return f"{self.nazwa} - {self.pacjent}"
+    
 #Kalendarz  
 class Wizyta(models.Model):
-    lekarz = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
-    pacjent_nazwa = models.CharField(max_length=100, default="Pacjent")
+    STATUS_CHOICES = [
+        ('oczekujaca', 'Oczekująca'),
+        ('zaakceptowana', 'Zaakceptowana'),
+        ('odrzucona', 'Odrzucona'),
+        ('zablokowana', 'Zablokowana'),
+    ]
+
+    lekarz = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        default=1,
+        related_name='wizyty_jako_lekarz'
+    )
+    pacjent = models.ForeignKey(
+        Pacjent,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='wizyty'
+    )
+    pacjent_nazwa = models.CharField(max_length=200, default="Pacjent", blank=True)
+    powod = models.TextField(blank=True, null=True, verbose_name="Powód wizyty")
     data_rozpoczecia = models.DateTimeField()
     data_zakonczenia = models.DateTimeField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='oczekujaca')
 
     def __str__(self):
-        return f"{self.pacjent_nazwa} - {self.data_rozpoczecia}"
+        return f"{self.pacjent_nazwa} - {self.data_rozpoczecia} [{self.get_status_display()}]"
+
     
 class PlanTreningowy(models.Model):
     fizjoterapeuta = models.ForeignKey('Fizjoterapeuta', on_delete=models.CASCADE, related_name='plany')
@@ -113,13 +134,32 @@ class Cwiczenie(models.Model):
     plan = models.ForeignKey(PlanTreningowy, on_delete=models.CASCADE, related_name='cwiczenia')
     nazwa_cwiczenia = models.CharField(max_length=255)
     serie = models.IntegerField(default=3)
-    powtórzenia = models.CharField(max_length=50) # "10", "12-15", "30s"
+    powtórzenia = models.CharField(max_length=50)
 
     def __str__(self):
         return self.nazwa_cwiczenia
 
 class OcenaCwiczenia(models.Model):
-    cwiczenie = models.OneToOneField(Cwiczenie, on_delete=models.CASCADE, related_name='ocena')
+    cwiczenie = models.ForeignKey(
+        Cwiczenie,
+        on_delete=models.CASCADE,
+        related_name='oceny'
+    )
+    pacjent = models.ForeignKey(
+        Pacjent,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='oceny'
+    )
     skala_bolu = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(10)])
     uwagi = models.TextField(blank=True, null=True)
     data_oceny = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-data_oceny']
+        verbose_name = "Ocena ćwiczenia"
+        verbose_name_plural = "Oceny ćwiczeń"
+
+    def __str__(self):
+        return f"Ocena: {self.cwiczenie} przez {self.pacjent} ({self.data_oceny.date() if self.data_oceny else '?'})"

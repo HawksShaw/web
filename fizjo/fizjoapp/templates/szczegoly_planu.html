@@ -1,49 +1,63 @@
+{% load static %}
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Plan treningowy – {{ plan.nazwa }}</title>
+  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}"/>
+  <link rel="stylesheet" href="{% static 'css/all.min.css' %}"/>
+</head>
+<body>
 <div class="container mt-5">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>Plan: {{ plan.nazwa }}</h2>
     <div>
-      <a
-        href="{% url 'dashboard_pacjent' %}"
-        class="btn btn-outline-secondary me-2"
-      >
-        ← Powrót do dashboardu
-      </a>
-      <a href="{% url 'eksportuj_plan_csv' plan.id %}" class="btn btn-success">
-        Pobierz jako CSV ⬇️
-      </a>
+      <a href="{% url 'plany_treningowe' %}" class="btn btn-outline-secondary me-2">← Powrót</a>
+      <a href="{% url 'eksportuj_plan_csv' plan.id %}" class="btn btn-success">Pobierz CSV ⬇️</a>
     </div>
   </div>
 
+  <p class="text-muted mb-4">
+    Oceń każde ćwiczenie po sesji. Możesz przesyłać feedback wielokrotnie — każdy zapis jest oddzielnie rejestrowany.
+  </p>
+
   <form method="POST">
-    {% csrf_token %} 
-    {{ formset.management_form }} 
-    
-    {% for cwiczenie, form in zestaw %}s
+    {% csrf_token %}
+    {{ formset.management_form }}
+
+    {% for cwiczenie, form in zestaw %}
     <div class="card mb-3 p-3 shadow-sm">
       <div class="row">
         <div class="col-md-6">
           <h5>{{ cwiczenie.nazwa_cwiczenia }}</h5>
-          <p class="mb-0 text-muted">
+          <p class="mb-1 text-muted">
             <strong>Serie:</strong> {{ cwiczenie.serie }} |
             <strong>Powtórzenia:</strong> {{ cwiczenie.powtórzenia }}
           </p>
+          {% with ostatnia=ostatnie_oceny|default:None %}
+          {% if ostatnie_oceny %}
+            {% with ocena=ostatnie_oceny|default:None %}
+            {# show last rating if exists #}
+            {% endwith %}
+          {% endif %}
+          {% endwith %}
+          {% if cwiczenie.id in ostatnie_oceny %}
+          <div class="alert alert-light border mt-2 py-1 px-2 small">
+            <i class="fas fa-history"></i> Ostatni feedback:
+            Ból <strong>{{ ostatnie_oceny|default:"" }}</strong>
+          </div>
+          {% endif %}
         </div>
         <div class="col-md-6 border-start">
           <div class="form-group">
-            <label class="form-label"
-              ><strong>Skala bólu (0 - brak, 10 - koszmar):</strong></label
-            >
+            <label class="form-label"><strong>Skala bólu (0–10):</strong></label>
             {{ form.skala_bolu }}
             <div class="text-end">
-              <small class="text-muted"
-                >Wybrany ból: <span class="range-val">5</span>/10</small
-              >
+              <small class="text-muted">Wybrany ból: <span class="range-val">5</span>/10</small>
             </div>
           </div>
           <div class="form-group mt-2">
-            <label class="form-label"
-              ><strong>Uwagi do ćwiczenia:</strong></label
-            >
+            <label class="form-label"><strong>Uwagi:</strong></label>
             {{ form.uwagi }}
           </div>
         </div>
@@ -53,18 +67,22 @@
 
     <div class="mt-4 mb-5">
       <button type="submit" class="btn btn-primary btn-lg w-100">
-        Zapisz trening i wyślij feedback fizjoterapeucie
+        <i class="fas fa-paper-plane"></i> Zapisz feedback i wyślij fizjoterapeucie
       </button>
     </div>
   </form>
 </div>
 
 <script>
-  document.querySelectorAll('input[type="range"]').forEach((slider) => {
-    const valSpan = slider.closest(".form-group").querySelector(".range-val");
-    valSpan.textContent = slider.value;
-    slider.addEventListener("input", (e) => {
-      valSpan.textContent = e.target.value;
-    });
+  document.querySelectorAll('input[type="range"]').forEach(function (slider) {
+    const group = slider.closest('.form-group');
+    if (!group) return;
+    const valSpan = group.querySelector('.range-val');
+    if (valSpan) {
+      valSpan.textContent = slider.value;
+      slider.addEventListener('input', function (e) { valSpan.textContent = e.target.value; });
+    }
   });
 </script>
+</body>
+</html>
