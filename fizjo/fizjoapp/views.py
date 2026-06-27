@@ -708,3 +708,65 @@ def edytuj_plan_treningowy(request, plan_id):
         'formset': formset,
         'plan': plan,
     })
+
+
+from django.core.paginator import Paginator
+from django.db.models import Q
+@login_required
+def log_fizjo(request):
+    if not hasattr(request.user, 'fizjoterapeuta'):
+        return render(request, '403.html', status=403)
+
+    fizjo = request.user.fizjoterapeuta
+
+    # 1. Pobieranie parametrów z formularza GET
+    sort = request.GET.get('sort', 'data_desc')
+    per_page = request.GET.get('per_page', '10')
+    search_query = request.GET.get('search', '').strip()
+
+    try:
+        per_page = int(per_page)
+        if per_page not in [5, 10, 20, 50]:
+            per_page = 10
+    except ValueError:
+        per_page = 10
+
+    # 2. Bazowe zapytanie do bazy danych
+    oceny_query = (
+        OcenaCwiczenia.objects
+        .filter(cwiczenie__plan__fizjoterapeuta=fizjo)
+        .select_related('cwiczenie', 'cwiczenie__plan', 'cwiczenie__plan__pacjent', 'pacjent')
+    )
+
+    # 3. FILTROWANIE po wpisanym tekście
+    if search_query:
+        oceny_query = oceny_query.filter(
+            Q(pacjent__imie__icontains=search_query) |
+            Q(pacjent__nazwisko__icontains=search_query) |
+            Q(cwiczenie__nazwa_cwiczenia__icontains=search_query) |
+            Q(uwagi__icontains=search_query)
+        )
+
+    # 4. Zastosowanie sortowania
+    if sort == 'bol_desc':
+        oceny_query = oceny_query.order_by('-skala_bolu', '-data_oceny')
+    elif sort == 'bol_asc':
+        oceny_query = oceny_query.order_by('skala_bolu', '-data_oceny')
+    elif sort == 'pacjent_asc':
+        oceny_query = oceny_query.order_by('pacjent__nazwisko', 'pacjent__imie', '-data_oceny')
+    elif sort == 'pacjent_desc':
+        oceny_query = oceny_query.order_by('-pacjent__nazwisko', '-pacjent__imie', '-data_oceny')
+    else:
+        oceny_query = oceny_query.order_by('-data_oceny')
+
+    # 5. Paginacja
+    paginator = Paginator(oceny_query, per_page)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'log_fizjo.html', {
+        'page_obj': page_obj,
+        'current_sort': sort,
+        'current_per_page': per_page,
+        'current_search': search_query,
+    })

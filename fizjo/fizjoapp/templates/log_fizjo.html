@@ -1,72 +1,274 @@
 {% load static %}
 <!doctype html>
 <html lang="pl">
-<head>
-  <meta charset="UTF-8"/>
-  <title>Log aktywności pacjentów</title>
-  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}"/>
-  <link rel="stylesheet" href="{% static 'css/all.min.css' %}"/>
-</head>
-<body>
-  <nav class="navbar navbar-dark bg-dark shadow-sm mb-4">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Log aktywności pacjentów</title>
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/all.min.css' %}" />
+  </head>
+  <body>
+    <nav class="navbar navbar-dark bg-dark shadow-sm mb-4">
+      <div class="container">
+        <span class="navbar-brand"
+          ><i class="fas fa-notes-medical" style="color: #cb34d9"></i> FizjoApp
+          – Log pacjentów</span
+        >
+        <a
+          href="{% url 'dashboard_fizjo' %}"
+          class="btn btn-outline-light btn-sm"
+          >← Panel główny</a
+        >
+      </div>
+    </nav>
+
     <div class="container">
-      <span class="navbar-brand mb-0 h1">
-        <i class="fas fa-notes-medical" style="color:#cb34d9"></i><b> FizjoApp</b> – Log pacjentów
-      </span>
-      <a href="{% url 'dashboard_fizjo' %}" class="btn btn-outline-light btn-sm">← Panel główny</a>
-    </div>
-  </nav>
+      <h2 class="mb-1">
+        <i class="fas fa-history" style="color: #cb34d9"></i> Log aktywności
+        pacjentów
+      </h2>
+      <p class="text-muted mb-4">
+        Wszystkie oceny ćwiczeń przesłane przez Twoich pacjentów, od
+        najnowszych.
+      </p>
 
-  <div class="container">
-    <h2 class="mb-1"><i class="fas fa-history" style="color:#cb34d9"></i> Log aktywności pacjentów</h2>
-    <p class="text-muted mb-4">Wszystkie oceny ćwiczeń przesłane przez Twoich pacjentów, od najnowszych.</p>
+      <form
+        method="GET"
+        class="row g-3 mb-4 align-items-end bg-light p-3 rounded border shadow-sm"
+      >
+        <div class="col-md-4">
+          <label for="search" class="form-label fw-bold"
+            >Szukaj (pacjent, ćwiczenie, uwagi):</label
+          >
+          <input
+            type="text"
+            name="search"
+            id="search"
+            class="form-control"
+            placeholder="Wpisz frazę..."
+            value="{{ current_search }}"
+          />
+        </div>
 
-    {% if oceny %}
-    <div class="table-responsive">
-      <table class="table table-striped table-hover border align-middle">
-        <thead class="table-dark">
-          <tr>
-            <th>Data oceny</th>
-            <th>Pacjent</th>
-            <th>Plan</th>
-            <th>Ćwiczenie</th>
-            <th class="text-center">Skala bólu</th>
-            <th>Uwagi pacjenta</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for ocena in oceny %}
-          <tr>
-            <td class="text-nowrap">{{ ocena.data_oceny|date:"d.m.Y H:i" }}</td>
-            <td>
-              {% if ocena.pacjent %}
-                <strong>{{ ocena.pacjent.imie }} {{ ocena.pacjent.nazwisko }}</strong>
-              {% else %}
+        <div class="col-md-3">
+          <label for="sort" class="form-label fw-bold">Sortuj według:</label>
+          <select name="sort" id="sort" class="form-select">
+            <option
+              value="data_desc"
+              {%
+              if
+              current_sort=""
+              ="data_desc"
+              %}selected{%
+              endif
+              %}
+            >
+              Od najnowszych (Domyślnie)
+            </option>
+            <option
+              value="bol_desc"
+              {%
+              if
+              current_sort=""
+              ="bol_desc"
+              %}selected{%
+              endif
+              %}
+            >
+              Ból: od największego
+            </option>
+            <option
+              value="bol_asc"
+              {%
+              if
+              current_sort=""
+              ="bol_asc"
+              %}selected{%
+              endif
+              %}
+            >
+              Ból: od najmniejszego
+            </option>
+            <option
+              value="pacjent_asc"
+              {%
+              if
+              current_sort=""
+              ="pacjent_asc"
+              %}selected{%
+              endif
+              %}
+            >
+              Pacjent: A-Z
+            </option>
+            <option
+              value="pacjent_desc"
+              {%
+              if
+              current_sort=""
+              ="pacjent_desc"
+              %}selected{%
+              endif
+              %}
+            >
+              Pacjent: Z-A
+            </option>
+          </select>
+        </div>
+
+        <div class="col-md-2">
+          <label for="per_page" class="form-label fw-bold">Rekordów:</label>
+          <select name="per_page" id="per_page" class="form-select">
+            <option
+              value="5"
+              {%
+              if
+              current_per_page=""
+              ="5"
+              %}selected{%
+              endif
+              %}
+            >
+              5
+            </option>
+            <option
+              value="10"
+              {%
+              if
+              current_per_page=""
+              ="10"
+              %}selected{%
+              endif
+              %}
+            >
+              10
+            </option>
+            <option
+              value="20"
+              {%
+              if
+              current_per_page=""
+              ="20"
+              %}selected{%
+              endif
+              %}
+            >
+              20
+            </option>
+            <option
+              value="50"
+              {%
+              if
+              current_per_page=""
+              ="50"
+              %}selected{%
+              endif
+              %}
+            >
+              50
+            </option>
+          </select>
+        </div>
+
+        <div class="col-md-3 d-flex gap-2">
+          <button type="submit" class="btn btn-primary w-50">
+            <i class="fas fa-filter"></i> Zastosuj
+          </button>
+          <a
+            href="{% url 'log_fizjo' %}"
+            class="btn btn-outline-secondary w-50"
+          >
+            <i class="fas fa-times"></i> Wyczyść
+          </a>
+        </div>
+      </form>
+
+      {% if page_obj %}
+      <nav aria-label="Nawigacja stron" class="mb-3">
+        <ul class="pagination pagination-sm justify-content-end mb-0">
+          {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a
+              class="page-link"
+              href="?page={{ page_obj.previous_page_number }}&sort={{ current_sort }}&per_page={{ current_per_page }}&search={{ current_search }}"
+              >&laquo; Poprzednia</a
+            >
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">&laquo; Poprzednia</span>
+          </li>
+          {% endif %}
+
+          <li class="page-item disabled">
+            <span class="page-link fw-bold text-dark">Strona {{ page_obj.number }} z {{ page_obj.paginator.num_pages}}</span>
+          </li>
+
+          {% if page_obj.has_next %}
+          <li class="page-item">
+            <a
+              class="page-link"
+              href="?page={{ page_obj.next_page_number }}&sort={{ current_sort }}&per_page={{ current_per_page }}&search={{ current_search }}"
+              >Następna &raquo;</a
+            >
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">Następna &raquo;</span>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+
+      <div class="table-responsive shadow-sm">
+        <table class="table table-striped table-hover border align-middle mb-0">
+          <thead class="table-dark">
+            <tr>
+              <th>Data oceny</th>
+              <th>Pacjent</th>
+              <th>Plan</th>
+              <th>Ćwiczenie</th>
+              <th class="text-center">Skala bólu</th>
+              <th>Uwagi pacjenta</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ocena in page_obj %}
+            <tr>
+              <td class="text-nowrap">
+                {{ ocena.data_oceny|date:"d.m.Y H:i" }}
+              </td>
+              <td>
+                {% if ocena.pacjent %}
+                <strong
+                  >{{ ocena.pacjent.nazwisko }} {{ ocena.pacjent.imie }}</strong
+                >
+                {% else %}
                 <span class="text-muted">—</span>
-              {% endif %}
-            </td>
-            <td>{{ ocena.cwiczenie.plan.nazwa }}</td>
-            <td>{{ ocena.cwiczenie.nazwa_cwiczenia }}</td>
-            <td class="text-center">
-              <span class="badge fs-6
-                {% if ocena.skala_bolu >= 7 %}bg-danger
-                {% elif ocena.skala_bolu >= 4 %}bg-warning text-dark
-                {% else %}bg-success{% endif %}">
-                {{ ocena.skala_bolu }}/10
-              </span>
-            </td>
-            <td>{{ ocena.uwagi|default:"—" }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+                {% endif %}
+              </td>
+              <td>{{ ocena.cwiczenie.plan.nazwa }}</td>
+              <td>{{ ocena.cwiczenie.nazwa_cwiczenia }}</td>
+              <td class="text-center">
+                <span
+                  class="badge fs-6 {% if ocena.skala_bolu >= 7 %}bg-danger {% elif ocena.skala_bolu >= 4 %}bg-warning text-dark {% else %}bg-success{% endif %}"
+                >
+                  {{ ocena.skala_bolu }}/10
+                </span>
+              </td>
+              <td>{{ ocena.uwagi|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% else %}
+      <div class="alert alert-info mt-4">
+        <i class="fas fa-info-circle"></i>
+        Brak ocen spełniających wybrane kryteria.
+      </div>
+      {% endif %}
     </div>
-    {% else %}
-    <div class="alert alert-info">
-      <i class="fas fa-info-circle"></i>
-      Żaden z Twoich pacjentów nie przesłał jeszcze oceny ćwiczeń.
-    </div>
-    {% endif %}
-  </div>
-</body>
+  </body>
 </html>
