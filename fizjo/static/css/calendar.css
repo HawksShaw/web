@@ -6,7 +6,7 @@
 
     /* ── Navbar ────────────────────────────────────────────────── */
     .fizjo-nav {
-      background: #060606;
+      background: #202020;
       border-bottom: 3px solid #cb34d9;
       padding: 0.75rem 0;
     }
@@ -160,3 +160,10 @@
     .modal-body p:last-child { border-bottom: none; }
     .modal-body strong { color: #7b1fa2; min-width: 70px; display: inline-block; }
     .modal-content { border: none; border-radius: 12px; box-shadow: 0 8px 40px rgba(123,31,162,0.18); }
+    .fc .fc-button:focus,
+    .fc .fc-button-primary:focus,
+    .fc .fc-button:active,
+    .fc .fc-button-primary:not(:disabled):active:focus {
+      outline: none !important;
+      box-shadow: none !important;
+    }

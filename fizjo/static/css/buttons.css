@@ -1,54 +1,50 @@
-/* Baza dla pełnego przycisku */
 .btn-fizbtn {
     background-color: #cb34d9;
     border-color: #cb34d9;
     color: white;
 }
 
-/* Efekt po najechaniu myszką (hover) */
 .btn-fizbtn:hover {
     background-color: #8a2294;
     border-color: #8a2294;
     color: white;
 }
-
-/* Baza dla wersji konturowej (outline) */
 .btn-outline-fizbtn {
     background-color: transparent;
     border-color: #cb34d9;
     color: #cb34d9;
 }
 
-/* Efekt hover dla wersji konturowej */
 .btn-outline-fizbtn:hover {
     background-color: #8a2294;
     color: white;
 }
 
 
-/* Baza dla pełnego przycisku */
 .btn-pacbtn {
     background-color: #9033d6;
     border-color: #9033d6;
     color: white;
 }
 
-/* Efekt po najechaniu myszką (hover) */
 .btn-pacbtn:hover {
     background-color: #632294;
     border-color: #632294;
     color: white;
 }
 
-/* Baza dla wersji konturowej (outline) */
 .btn-fizline-pacbtn {
     background-color: transparent;
     border-color: #9033d6;
     color: #9033d6;
 }
 
-/* Efekt hover dla wersji konturowej */
 .btn-fizline-pacbtn:hover {
     background-color: #632294;
     color: white;
+}
+
+.badge-fiz {
+    background-color: #cb34d9 !important;
+    color: #ffffff !important;
 }
