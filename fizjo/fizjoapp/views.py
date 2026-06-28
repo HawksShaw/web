@@ -675,3 +675,63 @@ def szczegoly_planu(request, plan_id):
 @login_required
 def strona_sukcesu(request):
     return render(request, 'sukces.html')
+
+
+@login_required
+def edit_fizjo(request):
+    """Widok panelu edycji/zarządzania planami."""
+    if not hasattr(request.user, 'fizjoterapeuta'):
+        return render(request, '403.html', status=403)
+        
+    fizjo = request.user.fizjoterapeuta
+    # Pobieramy wszystkie plany tego fizjoterapeuty, sortując od najnowszego
+    plany = PlanTreningowy.objects.filter(fizjoterapeuta=fizjo).order_by('-data_utworzenia')
+    
+    return render(request, 'edit_fizjo.html', {'plany': plany})
+
+@login_required
+def usun_plan(request, plan_id):
+    """Widok odpowiadający za usunięcie planu."""
+    if not hasattr(request.user, 'fizjoterapeuta'):
+        return JsonResponse({'error': 'Brak uprawnień'}, status=403)
+        
+    fizjo = request.user.fizjoterapeuta
+    # Pobieramy plan, upewniając się, że należy do zalogowanego fizjoterapeuty
+    plan = get_object_or_404(PlanTreningowy, id=plan_id, fizjoterapeuta=fizjo)
+    
+    # Dla bezpieczeństwa usuwamy tylko przy żądaniu POST
+    if request.method == 'POST':
+        plan.delete()
+        # Po udanym usunięciu wracamy do panelu edycji
+        return redirect('edit_fizjo')
+        
+    return redirect('edit_fizjo')
+
+@login_required
+def edytuj_plan_treningowy(request, plan_id):
+    if not hasattr(request.user, 'fizjoterapeuta'):
+        return render(request, '403.html', status=403)
+
+    fizjo = request.user.fizjoterapeuta
+    # Pobieramy konkretny plan, sprawdzając czy należy do tego fizjoterapeuty
+    plan = get_object_or_404(PlanTreningowy, id=plan_id, fizjoterapeuta=fizjo)
+
+    if request.method == 'POST':
+        # KLUCZOWE: przekazujemy instance=plan, aby Django wiedziało, że edytujemy istniejący rekord
+        form = PlanTreningowyForm(request.POST, instance=plan)
+        formset = CwiczenieFormSet(request.POST, instance=plan)
+        
+        if form.is_valid() and formset.is_valid():
+            form.save()
+            formset.save()
+            return redirect('edit_fizjo') # Wracamy do panelu zarządzania
+    else:
+        # Wypełniamy formularze dotychczasowymi danymi z bazy
+        form = PlanTreningowyForm(instance=plan)
+        formset = CwiczenieFormSet(instance=plan)
+
+    return render(request, 'edytuj_plan_treningowy.html', {
+        'form': form,
+        'formset': formset,
+        'plan': plan,
+    })

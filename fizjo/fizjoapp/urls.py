@@ -56,4 +56,7 @@ urlpatterns = [
     path('plan/<int:plan_id>/', views.szczegoly_planu, name='szczegoly_planu'),
     path('plan/<int:plan_id>/csv/', views.eksportuj_plan_csv, name='eksportuj_plan_csv'),
     path('sukces/', views.strona_sukcesu, name='dashboard_sukces'),
+
+    path('usun-plan/<int:plan_id>/', views.usun_plan, name='usun_plan'),
+    path('edytuj-plan/<int:plan_id>/', views.edytuj_plan_treningowy, name='edytuj_plan_treningowy'),
 ]
