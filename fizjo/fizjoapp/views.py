@@ -561,7 +561,8 @@ def dodaj_plan_treningowy(request):
     fizjo = request.user.fizjoterapeuta
 
     if request.method == 'POST':
-        form = PlanTreningowyForm(request.POST)
+        # Dodajemy argument fizjo=fizjo
+        form = PlanTreningowyForm(request.POST, fizjo=fizjo)
         if form.is_valid():
             plan = form.save(commit=False)
             plan.fizjoterapeuta = fizjo
@@ -571,7 +572,8 @@ def dodaj_plan_treningowy(request):
                 formset.save()
                 return redirect('dashboard_fizjo')
     else:
-        form = PlanTreningowyForm()
+        # Dodajemy argument fizjo=fizjo
+        form = PlanTreningowyForm(fizjo=fizjo)
         formset = CwiczenieFormSet()
 
     return render(request, 'dodaj_plan_treningowy.html', {
@@ -713,21 +715,20 @@ def edytuj_plan_treningowy(request, plan_id):
         return render(request, '403.html', status=403)
 
     fizjo = request.user.fizjoterapeuta
-    # Pobieramy konkretny plan, sprawdzając czy należy do tego fizjoterapeuty
     plan = get_object_or_404(PlanTreningowy, id=plan_id, fizjoterapeuta=fizjo)
 
     if request.method == 'POST':
-        # KLUCZOWE: przekazujemy instance=plan, aby Django wiedziało, że edytujemy istniejący rekord
-        form = PlanTreningowyForm(request.POST, instance=plan)
+        # Dodajemy argument fizjo=fizjo
+        form = PlanTreningowyForm(request.POST, instance=plan, fizjo=fizjo)
         formset = CwiczenieFormSet(request.POST, instance=plan)
         
         if form.is_valid() and formset.is_valid():
             form.save()
             formset.save()
-            return redirect('edit_fizjo') # Wracamy do panelu zarządzania
+            return redirect('edit_fizjo')
     else:
-        # Wypełniamy formularze dotychczasowymi danymi z bazy
-        form = PlanTreningowyForm(instance=plan)
+        # Dodajemy argument fizjo=fizjo
+        form = PlanTreningowyForm(instance=plan, fizjo=fizjo)
         formset = CwiczenieFormSet(instance=plan)
 
     return render(request, 'edytuj_plan_treningowy.html', {
@@ -735,3 +736,60 @@ def edytuj_plan_treningowy(request, plan_id):
         'formset': formset,
         'plan': plan,
     })
+
+@login_required
+def importuj_plan_csv(request):
+    if not hasattr(request.user, 'fizjoterapeuta'):
+        return render(request, '403.html', status=403)
+
+    fizjo = request.user.fizjoterapeuta
+
+    if request.method == 'POST':
+        nazwa_planu = request.POST.get('nazwa')
+        pacjent_id = request.POST.get('pacjent')
+        plik = request.FILES.get('plik_csv')
+
+        if not (nazwa_planu and pacjent_id and plik):
+            return HttpResponse("Wszystkie pola są wymagane.", status=400)
+
+        if not plik.name.endswith('.csv'):
+            return HttpResponse("Plik musi mieć rozszerzenie .csv", status=400)
+
+        pacjent = get_object_or_404(Pacjent, id=pacjent_id)
+
+        try:
+            # Odczyt pliku (używamy utf-8-sig dla bezpieczeństwa znaków PL z Excela)
+            decoded_file = plik.read().decode('utf-8-sig').splitlines()
+            reader = csv.reader(decoded_file)
+            
+            # Pomijamy nagłówek ('Nazwa cwiczenia', 'Serie', 'Powtorzenia')
+            next(reader, None)
+
+            # Jeśli plik się wczytał, tworzymy PlanTreningowy w bazie
+            plan = PlanTreningowy.objects.create(
+                fizjoterapeuta=fizjo,
+                pacjent=pacjent,
+                nazwa=nazwa_planu
+            )
+
+            # Pętla po wierszach i tworzenie ćwiczeń
+            for row in reader:
+                if len(row) >= 3:
+                    Cwiczenie.objects.create(
+                        plan=plan,
+                        nazwa_cwiczenia=row[0].strip(),
+                        serie=row[1].strip(),
+                        powtórzenia=row[2].strip()
+                    )
+            
+            return redirect('programy_fizjo')
+        except Exception as e:
+            return HttpResponse(f"Wystąpił błąd przetwarzania pliku CSV: {e}", status=400)
+
+    # Dla metody GET ładujemy formularz z listą zaakceptowanych pacjentów (tak jak chcieliśmy wcześniej)
+    pacjenci = Pacjent.objects.filter(
+        relacje_z_fizjo__fizjoterapeuta=fizjo,
+        relacje_z_fizjo__status='zaakceptowany'
+    )
+    
+    return render(request, 'importuj_plan_csv.html', {'pacjenci': pacjenci})

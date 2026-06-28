@@ -89,11 +89,23 @@ class OcenaCwiczeniaForm(forms.ModelForm):
 class PlanTreningowyForm(forms.ModelForm):
     class Meta:
         model = PlanTreningowy
-        fields = ['pacjent', 'nazwa'] # Fizjoterapeutę dodamy automatycznie w widoku
+        fields = ['pacjent', 'nazwa']
         widgets = {
             'pacjent': forms.Select(attrs={'class': 'form-select'}),
             'nazwa': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Np. Powrót po kontuzji ACL'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        # Wyciągamy przekazanego fizjoterapeutę (jeśli istnieje)
+        fizjo = kwargs.pop('fizjo', None)
+        super().__init__(*args, **kwargs)
+        
+        if fizjo:
+            # Filtrujemy queryset pacjentów korzystając z relacji (related_name='relacje_z_fizjo')
+            self.fields['pacjent'].queryset = Pacjent.objects.filter(
+                relacje_z_fizjo__fizjoterapeuta=fizjo,
+                relacje_z_fizjo__status='zaakceptowany'
+            )
 
 # Tworzymy powiązane formularze dla ćwiczeń (extra=3 oznacza, że domyślnie pojawią się 3 puste wiersze na ćwiczenia)
 CwiczenieFormSet = inlineformset_factory(
