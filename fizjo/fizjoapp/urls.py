@@ -59,4 +59,5 @@ urlpatterns = [
 
     path('usun-plan/<int:plan_id>/', views.usun_plan, name='usun_plan'),
     path('edytuj-plan/<int:plan_id>/', views.edytuj_plan_treningowy, name='edytuj_plan_treningowy'),
+    path('programy-fizjo/import-csv/', views.importuj_plan_csv, name='importuj_plan_csv'),
 ]

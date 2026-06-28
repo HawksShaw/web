@@ -1,12 +1,16 @@
 <div class="container mt-5">
-  <h2><i class="fas fa-clipboard-list"></i> Przypisane Plany Treningowe</h2>
-
   <div class="mb-3">
     <a href="{% url 'dashboard_fizjo' %}" class="btn btn-outline-secondary"
       >← Powrót</a
     >
     <a href="{% url 'dodaj_plan_treningowy' %}" class="btn btn-success ms-2">
       <i class="fas fa-plus"></i> Stwórz Nowy Plan
+    </a>
+    <a
+      href="{% url 'importuj_plan_csv' %}"
+      class="btn btn-info ms-2 text-white"
+    >
+      <i class="fas fa-file-import"></i> Importuj z CSV
     </a>
   </div>
 
@@ -31,6 +35,12 @@
             class="btn btn-sm btn-primary"
           >
             Zobacz Feedback
+          </a>
+          <a
+            href="{% url 'eksportuj_plan_csv' plan.id %}"
+            class="btn btn-sm btn-outline-success ms-1"
+          >
+            Eksport CSV
           </a>
         </td>
       </tr>
