@@ -82,6 +82,33 @@ def dashboard_fizjo(request):
     return render(request, 'dashboard_fizjo.html', context)
 
 
+# @login_required
+# def dashboard_pacjent(request):
+#     if not hasattr(request.user, 'pacjent'):
+#         return render(request, '403.html', status=403)
+
+#     pacjent = request.user.pacjent
+
+#     # Auto-generate code for patients registered before this feature existed
+#     if not pacjent.kod_pacjenta:
+#         pacjent.kod_pacjenta = generuj_kod_pacjenta()
+#         pacjent.save()
+
+#     pacjent_programy = Program.objects.filter(pacjent=pacjent)
+#     lekarze = Fizjoterapeuta.objects.select_related('user').all()
+
+#     # Pending connection requests sent by physios
+#     zaproszenia = FizjoPacjent.objects.filter(
+#         pacjent=pacjent, status='oczekujacy'
+#     ).select_related('fizjoterapeuta')
+
+#     context = {
+#         'programy': pacjent_programy,
+#         'lekarze': lekarze,
+#         'zaproszenia': zaproszenia,
+#     }
+#     return render(request, 'dashboard_pacjent.html', context)
+
 @login_required
 def dashboard_pacjent(request):
     if not hasattr(request.user, 'pacjent'):
@@ -89,7 +116,7 @@ def dashboard_pacjent(request):
 
     pacjent = request.user.pacjent
 
-    # Auto-generate code for patients registered before this feature existed
+    # Auto-generate code for patients
     if not pacjent.kod_pacjenta:
         pacjent.kod_pacjenta = generuj_kod_pacjenta()
         pacjent.save()
@@ -97,15 +124,21 @@ def dashboard_pacjent(request):
     pacjent_programy = Program.objects.filter(pacjent=pacjent)
     lekarze = Fizjoterapeuta.objects.select_related('user').all()
 
-    # Pending connection requests sent by physios
     zaproszenia = FizjoPacjent.objects.filter(
         pacjent=pacjent, status='oczekujacy'
     ).select_related('fizjoterapeuta')
+
+    # DODAJEMY TO: Pobieramy tylko przypisanych lekarzy (status zaakceptowany)
+    moi_lekarze = Fizjoterapeuta.objects.filter(
+        relacje_z_pacjentami__pacjent=pacjent,
+        relacje_z_pacjentami__status='zaakceptowany'
+    ).select_related('user')
 
     context = {
         'programy': pacjent_programy,
         'lekarze': lekarze,
         'zaproszenia': zaproszenia,
+        'moi_lekarze': moi_lekarze, # Przekazujemy listę do szablonu
     }
     return render(request, 'dashboard_pacjent.html', context)
 
@@ -289,6 +322,36 @@ def formularz_rezerwacji(request, lekarz_id):
         })
 
 
+# @login_required
+# def get_moje_wizyty(request):
+#     """
+#     Patient's own appointments for their dashboard calendar.
+#     FIX: uses real FK instead of fragile string contains search.
+#     """
+#     if not hasattr(request.user, 'pacjent'):
+#         return JsonResponse([], safe=False)
+
+#     wizyty = Wizyta.objects.filter(
+#         pacjent=request.user.pacjent
+#     ).exclude(status='odrzucona').select_related('lekarz')
+
+#     events = []
+#     for w in wizyty:
+#         lekarz_name = w.lekarz.get_full_name() or w.lekarz.username
+#         if w.status == 'zaakceptowana':
+#             color = '#198754'
+#             title = f'✅ Wizyta u dr {lekarz_name}'
+#         else:  # oczekujaca
+#             color = '#ffc107'
+#             title = f'⏳ Oczekuje u dr {lekarz_name}'
+
+#         events.append({
+#             'title': title,
+#             'start': w.data_rozpoczecia.isoformat(),
+#             'end': w.data_zakonczenia.isoformat(),
+#             'color': color,
+#         })
+#     return JsonResponse(events, safe=False)
 @login_required
 def get_moje_wizyty(request):
     """
@@ -298,9 +361,16 @@ def get_moje_wizyty(request):
     if not hasattr(request.user, 'pacjent'):
         return JsonResponse([], safe=False)
 
+    # Podstawowe zapytanie: wszystkie nieodrzucone wizyty tego pacjenta
     wizyty = Wizyta.objects.filter(
         pacjent=request.user.pacjent
     ).exclude(status='odrzucona').select_related('lekarz')
+
+    # ---- NOWOŚĆ: Filtrowanie po lekarzu, jeśli parametr został przekazany ----
+    lekarz_id = request.GET.get('lekarz_id')
+    if lekarz_id:
+        wizyty = wizyty.filter(lekarz_id=lekarz_id)
+    # ------------------------------------------------------------------------
 
     events = []
     for w in wizyty:
@@ -319,7 +389,6 @@ def get_moje_wizyty(request):
             'color': color,
         })
     return JsonResponse(events, safe=False)
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CALENDAR – PHYSIO-FACING APIs

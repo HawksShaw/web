@@ -53,22 +53,36 @@
       </div>
 
       <!-- ── Patient identifier code ─────────────────────────────── -->
-      <div class="card shadow-sm mb-4" style="border-top: 4px solid #cb34d9;">
+      <div class="card shadow-sm mb-4" style="border-top: 4px solid #cb34d9">
         <div class="card-body">
           <h5 class="mb-1">
-            <i class="fas fa-id-badge" style="color:#cb34d9"></i> Twój kod pacjenta
+            <i class="fas fa-id-badge" style="color: #cb34d9"></i> Twój kod
+            pacjenta
           </h5>
           <p class="text-muted small mb-2">
-            Podaj ten kod swojemu fizjoterapeucie — użyje go, żeby Cię dodać do swojego gabinetu.
+            Podaj ten kod swojemu fizjoterapeucie — użyje go, żeby Cię dodać do
+            swojego gabinetu.
           </p>
           <div class="d-flex align-items-center gap-2">
-            <code id="kodPacjenta" class="fs-4 px-3 py-2 bg-light border rounded" style="letter-spacing:0.15em">
+            <code
+              id="kodPacjenta"
+              class="fs-4 px-3 py-2 bg-light border rounded"
+              style="letter-spacing: 0.15em"
+            >
               {{ request.user.pacjent.kod_pacjenta|default:"—" }}
             </code>
-            <button class="btn btn-outline-secondary btn-sm" onclick="kopiujKod()" title="Skopiuj kod">
+            <button
+              class="btn btn-outline-secondary btn-sm"
+              onclick="kopiujKod()"
+              title="Skopiuj kod"
+            >
               <i class="fas fa-copy"></i> Kopiuj
             </button>
-            <span id="kopiowanoInfo" class="text-success small" style="display:none">
+            <span
+              id="kopiowanoInfo"
+              class="text-success small"
+              style="display: none"
+            >
               <i class="fas fa-check"></i> Skopiowano!
             </span>
           </div>
@@ -86,22 +100,30 @@
         </div>
         <ul class="list-group list-group-flush">
           {% for zaproszenie in zaproszenia %}
-          <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <li
+            class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2"
+          >
             <div>
               <strong>
-                {{ zaproszenie.fizjoterapeuta.tytul }}
-                {{ zaproszenie.fizjoterapeuta.imie }}
-                {{ zaproszenie.fizjoterapeuta.nazwisko }}
+                {{ zaproszenie.fizjoterapeuta.tytul }} 
+                {{zaproszenie.fizjoterapeuta.imie }}
+                {{zaproszenie.fizjoterapeuta.nazwisko}}
               </strong>
-              <span class="text-muted ms-2 small">{{ zaproszenie.fizjoterapeuta.specka }}</span>
+              <span class="text-muted ms-2 small"
+                >{{ zaproszenie.fizjoterapeuta.specka }}</span
+              >
             </div>
             <div class="d-flex gap-2">
-              <a href="{% url 'zaakceptuj_zaproszenie' zaproszenie.id %}"
-                 class="btn btn-success btn-sm">
+              <a
+                href="{% url 'zaakceptuj_zaproszenie' zaproszenie.id %}"
+                class="btn btn-success btn-sm"
+              >
                 <i class="fas fa-check"></i> Akceptuj
               </a>
-              <a href="{% url 'odrzuc_zaproszenie' zaproszenie.id %}"
-                 class="btn btn-outline-danger btn-sm">
+              <a
+                href="{% url 'odrzuc_zaproszenie' zaproszenie.id %}"
+                class="btn btn-outline-danger btn-sm"
+              >
                 <i class="fas fa-times"></i> Odrzuć
               </a>
             </div>
@@ -146,29 +168,57 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 
-    <div id="calendar" style="max-width: 900px; margin: 40px auto"></div>
+    <div style="max-width: 900px; margin: 40px auto 15px auto">
+      <label for="doctorSelect" class="form-label fw-bold">
+        <i class="fas fa-filter text-primary"></i> Wyświetl kalendarz:
+      </label>
+      <select id="doctorSelect" class="form-select border-primary shadow-sm">
+        <option value="">Moje zaplanowane wizyty</option>
+        {% for lekarz in moi_lekarze %}
+        <option value="{{ lekarz.user.id }}">
+          Dostępność: {{ lekarz.tytul }} {{ lekarz.imie }} {{ lekarz.nazwisko }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div id="calendar" style="max-width: 900px; margin: 0 auto 40px auto"></div>
 
     <script>
       document.addEventListener("DOMContentLoaded", function () {
         var calendarEl = document.getElementById("calendar");
+        var doctorSelect = document.getElementById("doctorSelect");
+
         var calendar = new FullCalendar.Calendar(calendarEl, {
           initialView: "timeGridWeek",
           slotMinTime: "08:00:00",
           slotMaxTime: "16:00:00",
           allDaySlot: false,
           selectable: false,
-
-          // --- DODAJ TE DWIE LINIJKI ---
-          height: "auto", // Dopasowuje wysokość kalendarza do ilości godzin, zamiast go sztucznie rozciągać
-          expandRows: false, // Zapobiega nienaturalnemu rozciąganiu wierszy na cały ekran
-          // -----------------------------
+          height: "auto", 
+          expandRows: false, 
           dayHeaderFormat: { weekday: "long" },
           locale: "pl",
-          events: "/api/get-my-appointments/",
-
-
+          events: "/api/get-my-appointments/", // Na starcie ładujemy wszystkie wizyty pacjenta
         });
+        
         calendar.render();
+
+        // NASŁUCHIWANIE ZMIANY W DROPDOWNIE
+        doctorSelect.addEventListener("change", function() {
+          var selectedId = this.value;
+          
+          // Czyścimy obecne źródła danych z kalendarza
+          calendar.removeAllEventSources();
+          
+          if (selectedId) {
+            // Jeśli pacjent wybrał lekarza -> filtrujemy JEGO WŁASNE wizyty po tym lekarzu
+            calendar.addEventSource("/api/get-my-appointments/?lekarz_id=" + selectedId);
+          } else {
+            // Jeśli wrócił do opcji domyślnej -> ponownie ładujemy wszystkie jego wizyty
+            calendar.addEventSource("/api/get-my-appointments/");
+          }
+        });
       });
     </script>
     <div class="card p-4 shadow-sm mb-4 text-center">
@@ -183,15 +233,17 @@
         🏋️ Zobacz swoje plany
       </a>
     </div>
-  <script>
-    function kopiujKod() {
-      const kod = document.getElementById('kodPacjenta').textContent.trim();
-      navigator.clipboard.writeText(kod).then(function () {
-        const info = document.getElementById('kopiowanoInfo');
-        info.style.display = 'inline';
-        setTimeout(() => { info.style.display = 'none'; }, 2000);
-      });
-    }
-  </script>
+    <script>
+      function kopiujKod() {
+        const kod = document.getElementById("kodPacjenta").textContent.trim();
+        navigator.clipboard.writeText(kod).then(function () {
+          const info = document.getElementById("kopiowanoInfo");
+          info.style.display = "inline";
+          setTimeout(() => {
+            info.style.display = "none";
+          }, 2000);
+        });
+      }
+    </script>
   </body>
 </html>
