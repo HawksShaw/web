@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}"/>
   <link rel="stylesheet" href="{% static 'css/all.min.css' %}"/>
   <link rel="stylesheet" href="{% static 'css/box.css' %}"/>
+  <link rel="stylesheet" href="{% static 'css/calendar.css' %}"/>
+  <link rel="stylesheet" href="{% static 'css/buttons.css' %}"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -28,7 +30,7 @@
 
     <div class="row mb-5">
       <div class="col-md-12 mb-4">
-        <button id="toggleTipsBtn" class="btn btn-outline-secondary w-100">
+        <button id="toggleTipsBtn" class="btn btn-outline-fizbtn w-100">
           <i class="fas fa-lightbulb"></i> Pokaż / Ukryj przypomnienie przed ustawieniem programu
         </button>
         <div id="tipsPanel" class="alert alert-warning mt-2 shadow-sm" style="display:none;opacity:0;transition:opacity 0.4s ease">

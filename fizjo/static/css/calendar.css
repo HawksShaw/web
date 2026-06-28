@@ -6,7 +6,7 @@
 
     /* ── Navbar ────────────────────────────────────────────────── */
     .fizjo-nav {
-      background: #1a0d1c;
+      background: #060606;
       border-bottom: 3px solid #cb34d9;
       padding: 0.75rem 0;
     }
@@ -32,7 +32,7 @@
       content: '';
       display: block;
       height: 5px;
-      background: linear-gradient(90deg, #cb34d9 0%, #7b1fa2 100%);
+      background: #cb34d9;
     }
     .calendar-inner {
       padding: 1.5rem 1.75rem 2rem;
@@ -149,7 +149,7 @@
 
     /* ── Modal ─────────────────────────────────────────────────── */
     .modal-header {
-      background: linear-gradient(90deg, #cb34d9, #7b1fa2);
+      background: #cb34d9;
       color: #fff;
       border-bottom: none;
       border-radius: calc(0.5rem - 1px) calc(0.5rem - 1px) 0 0;
