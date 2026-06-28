@@ -42,6 +42,11 @@ urlpatterns = [
     path('api/zatwierdz-wizyte/<int:wizyta_id>/', views.zatwierdz_wizyte, name='zatwierdz_wizyte'),
     path('api/odrzuc-wizyte/<int:wizyta_id>/', views.odrzuc_wizyte, name='odrzuc_wizyte'),
 
+    # Patient code system
+    path('pacjenci-fizjo/dodaj-po-kodzie/', views.dodaj_pacjenta_po_kodzie, name='dodaj_pacjenta_po_kodzie'),
+    path('zaproszenie/<int:relacja_id>/zaakceptuj/', views.zaakceptuj_zaproszenie, name='zaakceptuj_zaproszenie'),
+    path('zaproszenie/<int:relacja_id>/odrzuc/', views.odrzuc_zaproszenie, name='odrzuc_zaproszenie'),
+
     # Training plans – physio
     path('dodaj-plan-treningowy/', views.dodaj_plan_treningowy, name='dodaj_plan_treningowy'),
     path('programy-fizjo/<int:plan_id>/', views.szczegoly_planu_fizjo, name='szczegoly_planu_fizjo'),
@@ -51,12 +56,4 @@ urlpatterns = [
     path('plan/<int:plan_id>/', views.szczegoly_planu, name='szczegoly_planu'),
     path('plan/<int:plan_id>/csv/', views.eksportuj_plan_csv, name='eksportuj_plan_csv'),
     path('sukces/', views.strona_sukcesu, name='dashboard_sukces'),
-
-    # Profil pacjenta z perspektywy fizjo
-    path('pacjent/<int:pacjent_id>/', views.profil_pacjenta, name='profil_pacjenta'),
-    path('api/wykres-bolu/<int:pacjent_id>/', views.api_wykres_bolu, name='api_wykres_bolu'),
-
-    #Edycja planów
-    path('usun-plan/<int:plan_id>/', views.usun_plan, name='usun_plan'),
-    path('edytuj-plan/<int:plan_id>/', views.edytuj_plan_treningowy, name='edytuj_plan_treningowy'),
 ]

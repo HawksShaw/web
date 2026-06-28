@@ -52,6 +52,65 @@
         </p>
       </div>
 
+      <!-- ── Patient identifier code ─────────────────────────────── -->
+      <div class="card shadow-sm mb-4" style="border-top: 4px solid #cb34d9;">
+        <div class="card-body">
+          <h5 class="mb-1">
+            <i class="fas fa-id-badge" style="color:#cb34d9"></i> Twój kod pacjenta
+          </h5>
+          <p class="text-muted small mb-2">
+            Podaj ten kod swojemu fizjoterapeucie — użyje go, żeby Cię dodać do swojego gabinetu.
+          </p>
+          <div class="d-flex align-items-center gap-2">
+            <code id="kodPacjenta" class="fs-4 px-3 py-2 bg-light border rounded" style="letter-spacing:0.15em">
+              {{ request.user.pacjent.kod_pacjenta|default:"—" }}
+            </code>
+            <button class="btn btn-outline-secondary btn-sm" onclick="kopiujKod()" title="Skopiuj kod">
+              <i class="fas fa-copy"></i> Kopiuj
+            </button>
+            <span id="kopiowanoInfo" class="text-success small" style="display:none">
+              <i class="fas fa-check"></i> Skopiowano!
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Pending physio invitations ────────────────────────── -->
+      {% if zaproszenia %}
+      <div class="card shadow-sm mb-4 border-warning">
+        <div class="card-header bg-warning bg-opacity-10 border-warning">
+          <h5 class="mb-0 text-warning-emphasis">
+            <i class="fas fa-envelope-open-text"></i>
+            Zaproszenia od fizjoterapeutów ({{ zaproszenia|length }})
+          </h5>
+        </div>
+        <ul class="list-group list-group-flush">
+          {% for zaproszenie in zaproszenia %}
+          <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+              <strong>
+                {{ zaproszenie.fizjoterapeuta.tytul }}
+                {{ zaproszenie.fizjoterapeuta.imie }}
+                {{ zaproszenie.fizjoterapeuta.nazwisko }}
+              </strong>
+              <span class="text-muted ms-2 small">{{ zaproszenie.fizjoterapeuta.specka }}</span>
+            </div>
+            <div class="d-flex gap-2">
+              <a href="{% url 'zaakceptuj_zaproszenie' zaproszenie.id %}"
+                 class="btn btn-success btn-sm">
+                <i class="fas fa-check"></i> Akceptuj
+              </a>
+              <a href="{% url 'odrzuc_zaproszenie' zaproszenie.id %}"
+                 class="btn btn-outline-danger btn-sm">
+                <i class="fas fa-times"></i> Odrzuć
+              </a>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
       <div class="Sektor mb-5">
         <h2>
           <i class="fas fa-clipboard-check"></i> Twoje programy do wykonania
@@ -124,5 +183,15 @@
         🏋️ Zobacz swoje plany
       </a>
     </div>
+  <script>
+    function kopiujKod() {
+      const kod = document.getElementById('kodPacjenta').textContent.trim();
+      navigator.clipboard.writeText(kod).then(function () {
+        const info = document.getElementById('kopiowanoInfo');
+        info.style.display = 'inline';
+        setTimeout(() => { info.style.display = 'none'; }, 2000);
+      });
+    }
+  </script>
   </body>
 </html>

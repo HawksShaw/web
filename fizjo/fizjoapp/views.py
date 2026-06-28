@@ -9,7 +9,8 @@ from django.utils import timezone
 from django.db.models import Q
 import json
 import csv
-from django.http import JsonResponse
+import random
+import string
 
 from django.contrib.auth.models import User
 
@@ -25,6 +26,15 @@ from .forms import (
     OcenaCwiczeniaForm,
     PlanTreningowyForm, CwiczenieFormSet,
 )
+
+
+def generuj_kod_pacjenta():
+    """Generate a unique patient identifier like P-A3F92K1B."""
+    chars = string.ascii_uppercase + string.digits
+    while True:
+        kod = 'P-' + ''.join(random.choices(chars, k=8))
+        if not Pacjent.objects.filter(kod_pacjenta=kod).exists():
+            return kod
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -64,8 +74,6 @@ def dashboard_fizjo(request):
 
     context = {
         'fizjoterapeuci': Fizjoterapeuta.objects.all(),
-        'pacjenci': Pacjent.objects.all(),
-        'programy': Program.objects.all(),
         'moi_pacjenci_count': moi_pacjenci_count,
         'moje_plany_count': moje_plany_count,
         'nadchodzace_wizyty_count': nadchodzace_wizyty_count,
@@ -79,14 +87,25 @@ def dashboard_pacjent(request):
     if not hasattr(request.user, 'pacjent'):
         return render(request, '403.html', status=403)
 
-    pacjent_programy = Program.objects.filter(pacjent=request.user.pacjent)
+    pacjent = request.user.pacjent
 
-    # FIX: only show physios, not all users
+    # Auto-generate code for patients registered before this feature existed
+    if not pacjent.kod_pacjenta:
+        pacjent.kod_pacjenta = generuj_kod_pacjenta()
+        pacjent.save()
+
+    pacjent_programy = Program.objects.filter(pacjent=pacjent)
     lekarze = Fizjoterapeuta.objects.select_related('user').all()
+
+    # Pending connection requests sent by physios
+    zaproszenia = FizjoPacjent.objects.filter(
+        pacjent=pacjent, status='oczekujacy'
+    ).select_related('fizjoterapeuta')
 
     context = {
         'programy': pacjent_programy,
         'lekarze': lekarze,
+        'zaproszenia': zaproszenia,
     }
     return render(request, 'dashboard_pacjent.html', context)
 
@@ -144,7 +163,8 @@ def rejestracja(request):
                     user=user,
                     imie=user.first_name,
                     nazwisko=user.last_name,
-                    email=user.email
+                    email=user.email,
+                    kod_pacjenta=generuj_kod_pacjenta(),
                 )
             login(request, user)
             return redirect('dashboard')
@@ -392,16 +412,103 @@ def pacjenci_fizjo(request):
     if not hasattr(request.user, 'fizjoterapeuta'):
         return render(request, '403.html', status=403)
     fizjo = request.user.fizjoterapeuta
-    relacje = FizjoPacjent.objects.filter(
+
+    zaakceptowani = FizjoPacjent.objects.filter(
         fizjoterapeuta=fizjo, status='zaakceptowany'
     ).select_related('pacjent')
-    moi_pacjenci = [r.pacjent for r in relacje]
-    return render(request, 'pacjenci_fizjo.html', {'pacjenci': moi_pacjenci})
+
+    oczekujace = FizjoPacjent.objects.filter(
+        fizjoterapeuta=fizjo, status='oczekujacy'
+    ).select_related('pacjent')
+
+    return render(request, 'pacjenci_fizjo.html', {
+        'pacjenci': [r.pacjent for r in zaakceptowani],
+        'oczekujace': oczekujace,
+    })
 
 
 @login_required
 def edit_fizjo(request):
     return render(request, 'edit_fizjo.html')
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PATIENT CODE SYSTEM – physio adds by code, patient accepts/rejects
+# ─────────────────────────────────────────────────────────────────────────────
+
+@login_required
+def dodaj_pacjenta_po_kodzie(request):
+    """Physio enters a patient code → creates a pending FizjoPacjent."""
+    if not hasattr(request.user, 'fizjoterapeuta'):
+        return render(request, '403.html', status=403)
+
+    if request.method != 'POST':
+        return redirect('pacjenci_fizjo')
+
+    fizjo = request.user.fizjoterapeuta
+    kod = request.POST.get('kod', '').strip().upper()
+
+    # Re-fetch existing data for the template in case of error
+    def render_z_bledem(blad):
+        zaakceptowani = FizjoPacjent.objects.filter(
+            fizjoterapeuta=fizjo, status='zaakceptowany'
+        ).select_related('pacjent')
+        oczekujace = FizjoPacjent.objects.filter(
+            fizjoterapeuta=fizjo, status='oczekujacy'
+        ).select_related('pacjent')
+        return render(request, 'pacjenci_fizjo.html', {
+            'pacjenci': [r.pacjent for r in zaakceptowani],
+            'oczekujace': oczekujace,
+            'blad': blad,
+            'wpisany_kod': kod,
+        })
+
+    if not kod:
+        return render_z_bledem('Wpisz kod pacjenta.')
+
+    try:
+        pacjent = Pacjent.objects.get(kod_pacjenta=kod)
+    except Pacjent.DoesNotExist:
+        return render_z_bledem(f'Nie znaleziono pacjenta o kodzie „{kod}". Sprawdź pisownię.')
+
+    existing = FizjoPacjent.objects.filter(fizjoterapeuta=fizjo, pacjent=pacjent).first()
+    if existing:
+        if existing.status == 'zaakceptowany':
+            return render_z_bledem('Ten pacjent jest już przypisany do Twojego gabinetu.')
+        elif existing.status == 'oczekujacy':
+            return render_z_bledem('Zaproszenie do tego pacjenta zostało już wysłane — czeka na odpowiedź.')
+
+    FizjoPacjent.objects.create(
+        fizjoterapeuta=fizjo,
+        pacjent=pacjent,
+        status='oczekujacy',
+    )
+    return redirect('pacjenci_fizjo')
+
+
+@login_required
+def zaakceptuj_zaproszenie(request, relacja_id):
+    """Patient accepts a physio connection request."""
+    if not hasattr(request.user, 'pacjent'):
+        return render(request, '403.html', status=403)
+    relacja = get_object_or_404(
+        FizjoPacjent, id=relacja_id, pacjent=request.user.pacjent, status='oczekujacy'
+    )
+    relacja.status = 'zaakceptowany'
+    relacja.save()
+    return redirect('dashboard_pacjent')
+
+
+@login_required
+def odrzuc_zaproszenie(request, relacja_id):
+    """Patient declines a physio connection request."""
+    if not hasattr(request.user, 'pacjent'):
+        return render(request, '403.html', status=403)
+    relacja = get_object_or_404(
+        FizjoPacjent, id=relacja_id, pacjent=request.user.pacjent, status='oczekujacy'
+    )
+    relacja.delete()
+    return redirect('dashboard_pacjent')
 
 
 @login_required
@@ -568,205 +675,3 @@ def szczegoly_planu(request, plan_id):
 @login_required
 def strona_sukcesu(request):
     return render(request, 'sukces.html')
-
-# views.py
-from django.http import JsonResponse
-from .models import Pacjent, Cwiczenie, OcenaCwiczenia
-
-@login_required
-def profil_pacjenta(request, pacjent_id):
-    if not hasattr(request.user, 'fizjoterapeuta'):
-        return render(request, '403.html', status=403)
-    
-    # Upewniamy się, że pacjent istnieje
-    pacjent = get_object_or_404(Pacjent, id=pacjent_id)
-    
-    # Pobieramy wszystkie ćwiczenia powiązane z planami tego pacjenta
-    # Wyciągamy tylko te, które faktycznie otrzymały jakieś oceny
-    cwiczenia = Cwiczenie.objects.filter(
-        plan__pacjent=pacjent, 
-        oceny__isnull=False
-    ).distinct()
-
-    return render(request, 'profil_pacjenta.html', {
-        'pacjent': pacjent,
-        'cwiczenia': cwiczenia
-    })
-
-# views.py
-
-@login_required
-def profil_pacjenta(request, pacjent_id):
-    if not hasattr(request.user, 'fizjoterapeuta'):
-        return render(request, '403.html', status=403)
-    
-    pacjent = get_object_or_404(Pacjent, id=pacjent_id)
-    
-    # ZMIANA: Pobieramy tylko unikalne NAZWY ćwiczeń, które ten pacjent kiedykolwiek ocenił
-    cwiczenia_nazwy = Cwiczenie.objects.filter(
-        plan__pacjent=pacjent, 
-        oceny__isnull=False
-    ).values_list('nazwa_cwiczenia', flat=True).distinct()
-
-    return render(request, 'profil_pacjenta.html', {
-        'pacjent': pacjent,
-        'cwiczenia_nazwy': cwiczenia_nazwy  # Przekazujemy listę nazw (stringów)
-    })
-
-
-@login_required
-def api_wykres_bolu(request, pacjent_id):
-    if not hasattr(request.user, 'fizjoterapeuta'):
-        return JsonResponse({'error': 'Brak uprawnień'}, status=403)
-        
-    # Pobieramy nazwę ćwiczenia z parametru URL (?nazwa=...)
-    nazwa_cwiczenia = request.GET.get('nazwa', '')
-    
-    if not nazwa_cwiczenia:
-        return JsonResponse({'error': 'Nie podano nazwy ćwiczenia'}, status=400)
-        
-    # ZMIANA: Szukamy wszystkich ocen tego PACJENTA, gdzie ćwiczenie nazywa się tak samo
-    # Używamy __iexact, żeby ignorować wielkość liter (np. rdl i RDL połączy w jedno)
-    oceny = OcenaCwiczenia.objects.filter(
-        pacjent_id=pacjent_id,
-        cwiczenie__nazwa_cwiczenia__iexact=nazwa_cwiczenia
-    ).order_by('data_oceny')
-    
-    labels = [ocena.data_oceny.strftime('%d.%m.%Y') for ocena in oceny]
-    data = [ocena.skala_bolu for ocena in oceny]
-    
-    # Dodatkowo w dymku (tooltipie) możemy pokazać, z jakiego planu pochodziło dane ćwiczenie
-    uwagi = []
-    for ocena in oceny:
-        plan_nazwa = ocena.cwiczenie.plan.nazwa
-        tekst_uwagi = f"[{plan_nazwa}]"
-        if ocena.uwagi:
-            tekst_uwagi += f" - {ocena.uwagi}"
-        uwagi.append(tekst_uwagi)
-    
-    return JsonResponse({
-        'labels': labels,
-        'data': data,
-        'uwagi': uwagi
-    })
-
-@login_required
-def edit_fizjo(request):
-    """Widok panelu edycji/zarządzania planami."""
-    if not hasattr(request.user, 'fizjoterapeuta'):
-        return render(request, '403.html', status=403)
-        
-    fizjo = request.user.fizjoterapeuta
-    # Pobieramy wszystkie plany tego fizjoterapeuty, sortując od najnowszego
-    plany = PlanTreningowy.objects.filter(fizjoterapeuta=fizjo).order_by('-data_utworzenia')
-    
-    return render(request, 'edit_fizjo.html', {'plany': plany})
-
-@login_required
-def usun_plan(request, plan_id):
-    """Widok odpowiadający za usunięcie planu."""
-    if not hasattr(request.user, 'fizjoterapeuta'):
-        return JsonResponse({'error': 'Brak uprawnień'}, status=403)
-        
-    fizjo = request.user.fizjoterapeuta
-    # Pobieramy plan, upewniając się, że należy do zalogowanego fizjoterapeuty
-    plan = get_object_or_404(PlanTreningowy, id=plan_id, fizjoterapeuta=fizjo)
-    
-    # Dla bezpieczeństwa usuwamy tylko przy żądaniu POST
-    if request.method == 'POST':
-        plan.delete()
-        # Po udanym usunięciu wracamy do panelu edycji
-        return redirect('edit_fizjo')
-        
-    return redirect('edit_fizjo')
-
-@login_required
-def edytuj_plan_treningowy(request, plan_id):
-    if not hasattr(request.user, 'fizjoterapeuta'):
-        return render(request, '403.html', status=403)
-
-    fizjo = request.user.fizjoterapeuta
-    # Pobieramy konkretny plan, sprawdzając czy należy do tego fizjoterapeuty
-    plan = get_object_or_404(PlanTreningowy, id=plan_id, fizjoterapeuta=fizjo)
-
-    if request.method == 'POST':
-        # KLUCZOWE: przekazujemy instance=plan, aby Django wiedziało, że edytujemy istniejący rekord
-        form = PlanTreningowyForm(request.POST, instance=plan)
-        formset = CwiczenieFormSet(request.POST, instance=plan)
-        
-        if form.is_valid() and formset.is_valid():
-            form.save()
-            formset.save()
-            return redirect('edit_fizjo') # Wracamy do panelu zarządzania
-    else:
-        # Wypełniamy formularze dotychczasowymi danymi z bazy
-        form = PlanTreningowyForm(instance=plan)
-        formset = CwiczenieFormSet(instance=plan)
-
-    return render(request, 'edytuj_plan_treningowy.html', {
-        'form': form,
-        'formset': formset,
-        'plan': plan,
-    })
-
-
-from django.core.paginator import Paginator
-from django.db.models import Q
-@login_required
-def log_fizjo(request):
-    if not hasattr(request.user, 'fizjoterapeuta'):
-        return render(request, '403.html', status=403)
-
-    fizjo = request.user.fizjoterapeuta
-
-    # 1. Pobieranie parametrów z formularza GET
-    sort = request.GET.get('sort', 'data_desc')
-    per_page = request.GET.get('per_page', '10')
-    search_query = request.GET.get('search', '').strip()
-
-    try:
-        per_page = int(per_page)
-        if per_page not in [5, 10, 20, 50]:
-            per_page = 10
-    except ValueError:
-        per_page = 10
-
-    # 2. Bazowe zapytanie do bazy danych
-    oceny_query = (
-        OcenaCwiczenia.objects
-        .filter(cwiczenie__plan__fizjoterapeuta=fizjo)
-        .select_related('cwiczenie', 'cwiczenie__plan', 'cwiczenie__plan__pacjent', 'pacjent')
-    )
-
-    # 3. FILTROWANIE po wpisanym tekście
-    if search_query:
-        oceny_query = oceny_query.filter(
-            Q(pacjent__imie__icontains=search_query) |
-            Q(pacjent__nazwisko__icontains=search_query) |
-            Q(cwiczenie__nazwa_cwiczenia__icontains=search_query) |
-            Q(uwagi__icontains=search_query)
-        )
-
-    # 4. Zastosowanie sortowania
-    if sort == 'bol_desc':
-        oceny_query = oceny_query.order_by('-skala_bolu', '-data_oceny')
-    elif sort == 'bol_asc':
-        oceny_query = oceny_query.order_by('skala_bolu', '-data_oceny')
-    elif sort == 'pacjent_asc':
-        oceny_query = oceny_query.order_by('pacjent__nazwisko', 'pacjent__imie', '-data_oceny')
-    elif sort == 'pacjent_desc':
-        oceny_query = oceny_query.order_by('-pacjent__nazwisko', '-pacjent__imie', '-data_oceny')
-    else:
-        oceny_query = oceny_query.order_by('-data_oceny')
-
-    # 5. Paginacja
-    paginator = Paginator(oceny_query, per_page)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    return render(request, 'log_fizjo.html', {
-        'page_obj': page_obj,
-        'current_sort': sort,
-        'current_per_page': per_page,
-        'current_search': search_query,
-    })

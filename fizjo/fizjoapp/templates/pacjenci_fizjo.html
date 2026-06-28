@@ -1,41 +1,119 @@
-<div class="container mt-5">
-  <h2><i class="fas fa-users"></i> Moi Pacjenci</h2>
+{% load static %}
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Moi pacjenci – FizjoApp</title>
+  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}"/>
+  <link rel="stylesheet" href="{% static 'css/all.min.css' %}"/>
+</head>
+<body>
+  <nav class="navbar navbar-dark bg-dark shadow-sm mb-4">
+    <div class="container">
+      <span class="navbar-brand fw-bold">
+        <i class="fas fa-notes-medical" style="color:#cb34d9"></i> FizjoApp – Moi pacjenci
+      </span>
+      <a href="{% url 'dashboard_fizjo' %}" class="btn btn-outline-light btn-sm">← Panel główny</a>
+    </div>
+  </nav>
 
-  <div class="mb-3">
-    <a href="{% url 'dashboard_fizjo' %}" class="btn btn-outline-secondary"
-      >← Powrót</a
-    >
+  <div class="container pb-5">
+
+    <!-- ── Add patient by code ───────────────────────────────────── -->
+    <div class="card shadow-sm mb-4" style="border-top: 4px solid #cb34d9;">
+      <div class="card-body">
+        <h5 class="card-title mb-3">
+          <i class="fas fa-user-plus" style="color:#cb34d9"></i> Dodaj pacjenta po kodzie
+        </h5>
+        <p class="text-muted small mb-3">
+          Poproś pacjenta o podanie jego kodu identyfikacyjnego (widocznego w jego panelu).
+          Po wpisaniu kodu pacjent otrzyma zaproszenie i będzie musiał je zaakceptować.
+        </p>
+
+        <form method="POST" action="{% url 'dodaj_pacjenta_po_kodzie' %}" class="row g-2 align-items-start">
+          {% csrf_token %}
+          <div class="col-md-5">
+            <input
+              type="text"
+              name="kod"
+              value="{{ wpisany_kod|default:'' }}"
+              class="form-control form-control-lg {% if blad %}is-invalid{% endif %}"
+              placeholder="np. P-A3F92K1B"
+              maxlength="20"
+              autocomplete="off"
+              style="font-family: monospace; letter-spacing: 0.1em;"
+            />
+            {% if blad %}
+            <div class="invalid-feedback d-block">
+              <i class="fas fa-exclamation-circle"></i> {{ blad }}
+            </div>
+            {% endif %}
+          </div>
+          <div class="col-auto">
+            <button type="submit" class="btn btn-lg" style="background:#cb34d9;color:#fff;">
+              <i class="fas fa-paper-plane"></i> Wyślij zaproszenie
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ── Pending outgoing requests ─────────────────────────────── -->
+    {% if oczekujace %}
+    <div class="card shadow-sm mb-4 border-warning">
+      <div class="card-header bg-warning bg-opacity-10 border-warning">
+        <h5 class="mb-0 text-warning-emphasis">
+          <i class="fas fa-clock"></i> Oczekujące zaproszenia ({{ oczekujace|length }})
+        </h5>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for relacja in oczekujace %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <strong>{{ relacja.pacjent.imie }} {{ relacja.pacjent.nazwisko }}</strong>
+            <span class="text-muted ms-2 small">{{ relacja.pacjent.kod_pacjenta }}</span>
+          </div>
+          <span class="badge bg-warning text-dark">⏳ Czeka na odpowiedź pacjenta</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <!-- ── Accepted patients ──────────────────────────────────────── -->
+    <h4 class="mb-3">
+      <i class="fas fa-users" style="color:#cb34d9"></i> Moi pacjenci
+      <span class="badge bg-secondary ms-2">{{ pacjenci|length }}</span>
+    </h4>
+
+    {% if pacjenci %}
+    <div class="table-responsive">
+      <table class="table table-striped table-hover border align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>Imię i nazwisko</th>
+            <th>Kod pacjenta</th>
+            <th>E-mail</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pacjent in pacjenci %}
+          <tr>
+            <td><strong>{{ pacjent.imie }} {{ pacjent.nazwisko }}</strong></td>
+            <td><code>{{ pacjent.kod_pacjenta|default:"—" }}</code></td>
+            <td>{{ pacjent.email }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+      <i class="fas fa-info-circle"></i>
+      Nie masz jeszcze żadnych pacjentów. Dodaj pierwszego używając formularza powyżej.
+    </div>
+    {% endif %}
+
   </div>
-
-  <table class="table table-striped table-hover border mt-4">
-    <thead class="table-dark">
-      <tr>
-        <th>Imię i Nazwisko</th>
-        <th>Email</th>
-        <th>Akcje</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for pacjent in pacjenci %}
-      <tr>
-        <td>{{ pacjent.imie }} {{ pacjent.nazwisko }}</td>
-        <td>{{ pacjent.email }}</td>
-        <td>
-          <a
-            href="{% url 'profil_pacjenta' pacjent.id %}"
-            class="btn btn-sm btn-primary"
-          >
-            Zobacz Profil i Postępy
-          </a>
-        </td>
-      </tr>
-      {% empty %}
-      <tr>
-        <td colspan="3" class="text-center">
-          Nie masz jeszcze przypisanych pacjentów.
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+</body>
+</html>

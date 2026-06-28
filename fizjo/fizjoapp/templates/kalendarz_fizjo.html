@@ -3,49 +3,63 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8"/>
-  <title>Kalendarz fizjoterapeuty</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Kalendarz – FizjoApp</title>
   <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}"/>
   <link rel="stylesheet" href="{% static 'css/all.min.css' %}"/>
-  <link rel="stylesheet" href="{% static 'css/box.css' %}"/>
+  <link rel="stylesheet" href="{% static 'css/calendar.css' %}"/>
 </head>
 <body>
-  <nav class="navbar navbar-dark bg-dark shadow-sm mb-4">
-    <div class="container">
-      <span class="navbar-brand mb-0 h1">
-        <i class="fas fa-notes-medical" style="color:#cb34d9"></i><b> FizjoApp</b> – Kalendarz
+
+  <!-- Navbar -->
+  <nav class="fizjo-nav shadow-sm mb-4">
+    <div class="container d-flex justify-content-between align-items-center">
+      <span class="brand-text">
+        <i class="fas fa-notes-medical me-2" style="color:#cb34d9"></i>Fizjo<span>App</span>
+        <span class="text-white fw-light ms-1">/ Kalendarz</span>
       </span>
-      <a href="{% url 'dashboard_fizjo' %}" class="btn btn-outline-light btn-sm">← Panel główny</a>
+      <a href="{% url 'dashboard_fizjo' %}" class="btn btn-sm"
+         style="background:rgba(203,52,217,0.15);color:#e89df0;border:1px solid rgba(203,52,217,0.3);">
+        ← Panel główny
+      </a>
     </div>
   </nav>
 
-  <div class="container">
-    <div class="row mb-3">
-      <div class="col">
-        <span class="badge bg-warning text-dark me-2 fs-5">⏳ Oczekująca</span>
-        <span class="badge bg-success me-2 fs-5">✅ Zaakceptowana</span>
-        <span class="badge bg-secondary me-2 fs-5">❌ Odrzucona</span>
-        <span class="badge bg-danger fs-5">🔒 Zablokowana przez Ciebie</span>
+  <div class="container pb-5" style="max-width:1020px">
+
+    <!-- Calendar card -->
+    <div class="calendar-card">
+      <div class="calendar-inner">
+
+        <!-- Legend -->
+        <div class="legend-bar">
+          <span class="legend-pill pill-pending">⏳ Oczekująca</span>
+          <span class="legend-pill pill-accepted">✅ Zaakceptowana</span>
+          <span class="legend-pill pill-rejected">❌ Odrzucona</span>
+          <span class="legend-pill pill-blocked">🔒 Zablokowana przez Ciebie</span>
+        </div>
+
+        <!-- FullCalendar mount point -->
+        <div id="calendar"></div>
+
       </div>
     </div>
-    <div id="calendar" style="max-width:960px;margin:0 auto"></div>
   </div>
 
-  <!-- Approval modal -->
+  <!-- Appointment detail modal -->
   <div class="modal fade" id="wizytaModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Szczegóły wizyty</h5>
+          <h5 class="modal-title"><i class="fas fa-calendar-check me-2"></i>Szczegóły wizyty</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body px-4 py-3">
           <p><strong>Pacjent:</strong> <span id="modalPacjent"></span></p>
           <p><strong>Powód:</strong> <span id="modalPowod"></span></p>
           <p><strong>Status:</strong> <span id="modalStatus"></span></p>
         </div>
-        <div class="modal-footer" id="modalFooter">
-          <!-- approve/reject buttons injected by JS when status=oczekujaca -->
-        </div>
+        <div class="modal-footer" id="modalFooter"></div>
       </div>
     </div>
   </div>
@@ -53,11 +67,9 @@
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
   <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
   <script>
-    // Read CSRF token from cookie (Django sets it)
     function getCsrf() {
       const name = 'csrftoken';
-      const cookies = document.cookie.split(';');
-      for (let c of cookies) {
+      for (let c of document.cookie.split(';')) {
         const [k, v] = c.trim().split('=');
         if (k === name) return decodeURIComponent(v);
       }
@@ -71,84 +83,88 @@
       const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'timeGridWeek',
         slotMinTime: '08:00:00',
-        slotMaxTime: '16:00:00',
+        slotMaxTime: '18:00:00',
         allDaySlot: false,
         selectable: true,
         height: 'auto',
         expandRows: false,
-        dayHeaderFormat: { weekday: 'long' },
         locale: 'pl',
+        nowIndicator: true,
+
+        // View switcher buttons
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,timeGridDay',
+        },
+
+        buttonText: {
+          today:  'Dziś',
+          month:  'Miesiąc',
+          week:   'Tydzień',
+          day:    'Dzień',
+        },
+
+        dayHeaderFormat: { weekday: 'long' },
         events: '/api/get-appointments/',
 
-        // Physio clicks an event → show details + approve/reject for pending
+        // Click event → show modal
         eventClick: function (info) {
           const props = info.event.extendedProps;
           document.getElementById('modalPacjent').textContent = props.pacjent_nazwa || '—';
-          document.getElementById('modalPowod').textContent = props.powod || 'Brak powodu';
+          document.getElementById('modalPowod').textContent   = props.powod || 'Brak powodu';
 
-          const statusLabels = {
-            'oczekujaca': '⏳ Oczekująca',
-            'zaakceptowana': '✅ Zaakceptowana',
-            'odrzucona': '❌ Odrzucona',
-            'zablokowana': '🔒 Zablokowana',
+          const labels = {
+            oczekujaca:   '⏳ Oczekująca',
+            zaakceptowana:'✅ Zaakceptowana',
+            odrzucona:    '❌ Odrzucona',
+            zablokowana:  '🔒 Zablokowana',
           };
-          document.getElementById('modalStatus').textContent = statusLabels[props.status] || props.status;
+          document.getElementById('modalStatus').textContent = labels[props.status] || props.status;
 
           const footer = document.getElementById('modalFooter');
           footer.innerHTML = '';
 
           if (props.status === 'oczekujaca') {
-            const wizytaId = info.event.id;
+            const id = info.event.id;
 
-            const btnZatwierdz = document.createElement('button');
-            btnZatwierdz.className = 'btn btn-success';
-            btnZatwierdz.innerHTML = '<i class="fas fa-check"></i> Zatwierdź';
-            btnZatwierdz.addEventListener('click', function () {
-              fetch('/api/zatwierdz-wizyte/' + wizytaId + '/', {
-                method: 'GET',
-                headers: { 'X-CSRFToken': getCsrf() },
-              })
+            const btnOk = document.createElement('button');
+            btnOk.className = 'btn btn-success';
+            btnOk.innerHTML = '<i class="fas fa-check me-1"></i> Zatwierdź';
+            btnOk.onclick = () =>
+              fetch('/api/zatwierdz-wizyte/' + id + '/', { headers: { 'X-CSRFToken': getCsrf() } })
                 .then(r => r.json())
                 .then(() => { modal.hide(); calendar.refetchEvents(); });
-            });
 
-            const btnOdrzuc = document.createElement('button');
-            btnOdrzuc.className = 'btn btn-danger ms-2';
-            btnOdrzuc.innerHTML = '<i class="fas fa-times"></i> Odrzuć';
-            btnOdrzuc.addEventListener('click', function () {
-              fetch('/api/odrzuc-wizyte/' + wizytaId + '/', {
-                method: 'GET',
-                headers: { 'X-CSRFToken': getCsrf() },
-              })
+            const btnNo = document.createElement('button');
+            btnNo.className = 'btn btn-danger ms-2';
+            btnNo.innerHTML = '<i class="fas fa-times me-1"></i> Odrzuć';
+            btnNo.onclick = () =>
+              fetch('/api/odrzuc-wizyte/' + id + '/', { headers: { 'X-CSRFToken': getCsrf() } })
                 .then(r => r.json())
                 .then(() => { modal.hide(); calendar.refetchEvents(); });
-            });
 
-            footer.appendChild(btnZatwierdz);
-            footer.appendChild(btnOdrzuc);
+            footer.appendChild(btnOk);
+            footer.appendChild(btnNo);
           } else {
-            const closeBtn = document.createElement('button');
-            closeBtn.className = 'btn btn-secondary';
-            closeBtn.textContent = 'Zamknij';
-            closeBtn.setAttribute('data-bs-dismiss', 'modal');
-            footer.appendChild(closeBtn);
+            const close = document.createElement('button');
+            close.className = 'btn btn-secondary';
+            close.textContent = 'Zamknij';
+            close.setAttribute('data-bs-dismiss', 'modal');
+            footer.appendChild(close);
           }
 
           modal.show();
         },
 
+        // Select empty slot → block it
         select: function (info) {
-          if (confirm('Czy chcesz zablokować ten termin w swoim kalendarzu?')) {
+          if (confirm('Zablokować ten termin w kalendarzu?')) {
             fetch('/api/add-appointment/', {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCsrf(),
-              },
+              headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
               body: JSON.stringify({ start: info.startStr, end: info.endStr }),
-            })
-              .then(r => r.json())
-              .then(() => calendar.refetchEvents());
+            }).then(r => r.json()).then(() => calendar.refetchEvents());
           }
         },
       });

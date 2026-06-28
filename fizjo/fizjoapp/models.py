@@ -1,3 +1,5 @@
+import random
+import string
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
@@ -27,6 +29,14 @@ class Pacjent(models.Model):
         verbose_name="Fizjoterapeuta odpowiedzialny za pacjenta"
     )
 
+    kod_pacjenta = models.CharField(
+        max_length=20,
+        unique=True,
+        null=True,
+        blank=True,
+        verbose_name="Kod pacjenta"
+    )
+
     def __str__(self):
         return f"{self.imie} {self.nazwisko}"
 
@@ -44,6 +54,7 @@ class FizjoPacjent(models.Model):
     status_choices = [
         ('oczekujacy', 'Oczekujący'),
         ('zaakceptowany', 'Zaakceptowany'),
+        ('odrzucony', 'Odrzucony'),
     ]
     status = models.CharField(max_length=20, choices=status_choices, default='zaakceptowany')
     data_utworzenia = models.DateTimeField(auto_now_add=True)
@@ -163,3 +174,4 @@ class OcenaCwiczenia(models.Model):
 
     def __str__(self):
         return f"Ocena: {self.cwiczenie} przez {self.pacjent} ({self.data_oceny.date() if self.data_oceny else '?'})"
+

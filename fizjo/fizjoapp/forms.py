@@ -57,7 +57,7 @@ class FizjoForm(forms.ModelForm):
 class PacjentForm(forms.ModelForm):
     class Meta:
         model = Pacjent
-        fields = '__all__'
+        exclude = ['kod_pacjenta']  # auto-generated on registration, never user-editable
 
 class ProgramForm(forms.ModelForm):
     class Meta:
