@@ -1,0 +1,61 @@
+    body { background:#f3eafe; font-family:'Segoe UI',system-ui,sans-serif; }
+
+    /* ── Nav ── */
+    .pac-nav { background:#0d0a17; border-bottom:3px solid #9033d6; }
+
+    /* ── Cards ── */
+    .main-card { background:#fff; border-radius:16px; box-shadow:0 4px 24px rgba(144,51,214,.10); overflow:hidden; }
+
+    /* ── Stat cards ── */
+    .stat-card { border-radius:12px; border:none; box-shadow:0 2px 12px rgba(144,51,214,.08); transition:transform .15s,box-shadow .15s; text-decoration:none; color:inherit; display:block; }
+    .stat-card:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(144,51,214,.15); color:inherit; }
+    .stat-icon { font-size:2.2rem; color:#9033d6; }
+
+    /* ── Buttons ── */
+    .btn-pac { background:#9033d6; color:#fff; border:none; }
+    .btn-pac:hover { background:#7a28b8; color:#fff; }
+    .btn-pac-outline { border:1.5px solid #9033d6; color:#9033d6; background:transparent; }
+    .btn-pac-outline:hover { background:#9033d6; color:#fff; }
+
+    /* ── Code box ── */
+    .code-box { font-family:monospace; font-size:1.4rem; letter-spacing:.15em; background:#f5effe; border:2px solid #d4b0f5; border-radius:10px; padding:.5rem 1.25rem; display:inline-block; }
+
+    /* ── Calendar ── */
+    :root {
+      --fc-border-color: #e5d4f8;
+      --fc-today-bg-color: rgba(144,51,214,.07);
+      --fc-highlight-color: rgba(144,51,214,.12);
+      --fc-button-bg-color: #9033d6;
+      --fc-button-border-color: #7a28b8;
+      --fc-button-hover-bg-color: #7a28b8;
+      --fc-button-hover-border-color: #6722a8;
+      --fc-button-active-bg-color: #6722a8;
+      --fc-button-active-border-color: #6722a8;
+    }
+    .fc .fc-toolbar-title { font-size:1.2rem; font-weight:700; color:#0d0a17; }
+    .fc .fc-button { border-radius:8px!important; font-weight:600; font-size:.8rem; text-transform:uppercase; letter-spacing:.04em; }
+    .fc .fc-button-group .fc-button:first-child { border-radius:8px 0 0 8px!important; }
+    .fc .fc-button-group .fc-button:last-child  { border-radius:0 8px 8px 0!important; }
+    .fc .fc-col-header-cell { background:#f8f2ff; font-weight:700; font-size:.78rem; text-transform:uppercase; letter-spacing:.06em; color:#6722a8; padding:.45rem 0; }
+    .fc .fc-col-header-cell a { color:inherit!important; text-decoration:none; }
+    .fc .fc-timegrid-slot-label { font-size:.73rem; color:#9033d6; font-weight:600; }
+    .fc .fc-event { border-radius:8px!important; border:none!important; box-shadow:0 2px 6px rgba(0,0,0,.12); font-size:.78rem; font-weight:600; padding:2px 6px; cursor:pointer; transition:transform .1s,box-shadow .1s; }
+    .fc .fc-event:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,.18); }
+    .fc .fc-day-today .fc-daygrid-day-number { background:#9033d6; color:#fff; border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; margin:4px; }
+    .fc-nowIndicator-line { border-color:#9033d6!important; }
+
+    /* ── Table ── */
+    .pac-table thead th { background:#0d0a17!important; color:#fff!important; border:none!important; }
+
+    /* ── Legend pills ── */
+    .legend-bar { background:#faf6ff; border:1px solid #e5d4f8; border-radius:10px; padding:.65rem 1rem; }
+    .lpill { display:inline-flex; align-items:center; gap:.35rem; padding:.25rem .7rem; border-radius:999px; font-size:.8rem; font-weight:600; }
+    .lpill-green  { background:#e8f5e9; color:#1b6b35; border:1.5px solid #10b981; }
+    .lpill-yellow { background:#fff8e1; color:#92640a; border:1.5px solid #f59e0b; }
+    .lpill-red    { background:#fde8e8; color:#991b1b; border:1.5px solid #ef4444; }
+    .lpill-grey   { background:#fde8e8; color:#5e5d5d; border:1.5px solid #878484; }
+
+    .card-top::before{content:'';display:block;height:4px;background:#9033d6;}
+    .plan-card{border-radius:14px;border:none;box-shadow:0 2px 16px rgba(144,51,214,.09);transition:transform .15s,box-shadow .15s;}
+    .plan-card:hover{transform:translateY(-3px);box-shadow:0 6px 24px rgba(144,51,214,.16);}
+    .fizjo-badge{background:rgba(144,51,214,.1);color:#6722a8;font-size:.78rem;font-weight:600;border-radius:999px;padding:.2rem .65rem;}
