@@ -1,20 +1,90 @@
-<div class="container mt-5">
-  <h2>Edytuj plan: {{ plan.nazwa }}</h2>
+{% load static %}
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Edytuj plan – FizjoApp</title>
+  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}"/>
+  <link rel="stylesheet" href="{% static 'css/all.min.css' %}"/>
+  <style>
+    body{background:#f5edf8;}
+    .fizjo-nav{background:#1a0d1c;border-bottom:3px solid #cb34d9;}
+    .card-top::before{content:'';display:block;height:4px;background:linear-gradient(90deg,#cb34d9,#7b1fa2);}
+    .btn-fizjo{background:#cb34d9;color:#fff;border:none;}
+    .btn-fizjo:hover{background:#b52ec2;color:#fff;}
+    .exercise-row{border-left:3px solid #e0c8f5;background:#fdf8ff;border-radius:8px;padding:1rem;}
+    .exercise-row.to-delete{opacity:.45;border-left-color:#dc3545;}
+  </style>
+</head>
+<body>
+  <nav class="fizjo-nav navbar navbar-dark shadow-sm mb-4">
+    <div class="container">
+      <span class="navbar-brand fw-bold"><i class="fas fa-notes-medical" style="color:#cb34d9"></i> FizjoApp – Edytuj plan</span>
+      <a href="{% url 'edit_fizjo' %}" class="btn btn-outline-light btn-sm">← Powrót</a>
+    </div>
+  </nav>
 
-  <form method="POST" class="mt-4">
-    {% csrf_token %}
+  <div class="container pb-5" style="max-width:760px">
+    <form method="POST">
+      {% csrf_token %}
 
-    <h4>Nagłówek planu</h4>
-    {{ form.as_p }}
+      <div class="card shadow-sm mb-4 overflow-hidden">
+        <div class="card-top"></div>
+        <div class="card-body p-4">
+          <h4 class="fw-bold mb-4">Informacje o planie: <span style="color:#cb34d9">{{ plan.nazwa }}</span></h4>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Pacjent</label>
+              {{ form.pacjent }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Nazwa planu</label>
+              {{ form.nazwa }}
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <h4 class="mt-4">Lista ćwiczeń</h4>
-    {{ formset.management_form }} {% for f in formset %}
-    <div class="border p-3 mb-3 bg-light rounded">{{ f.id }} {{ f.as_p }}</div>
-    {% endfor %}
+      <div class="card shadow-sm mb-4 overflow-hidden">
+        <div class="card-top"></div>
+        <div class="card-body p-4">
+          <h4 class="fw-bold mb-4">Lista ćwiczeń</h4>
+          {{ formset.management_form }}
+          {% for f in formset %}
+          <div class="exercise-row mb-3">
+            {{ f.id }}
+            <div class="row g-2 align-items-end">
+              <div class="col-md-5">
+                <label class="form-label small fw-semibold text-muted text-uppercase" style="letter-spacing:.04em">Ćwiczenie</label>
+                {{ f.nazwa_cwiczenia }}
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold text-muted text-uppercase" style="letter-spacing:.04em">Serie</label>
+                {{ f.serie }}
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold text-muted text-uppercase" style="letter-spacing:.04em">Powtórzenia</label>
+                {{ f.powtórzenia }}
+              </div>
+              {% if f.DELETE %}
+              <div class="col-md-1 text-center">
+                <label class="form-label small fw-semibold text-danger text-uppercase" style="letter-spacing:.04em">Usuń</label>
+                {{ f.DELETE }}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
 
-    <button type="submit" class="btn btn-success mt-3">Zapisz zmiany</button>
-    <a href="{% url 'edit_fizjo' %}" class="btn btn-outline-secondary mt-3"
-      >Anuluj</a
-    >
-  </form>
-</div>
+      <div class="d-flex gap-2 mb-5">
+        <button type="submit" class="btn btn-fizjo btn-lg flex-grow-1">
+          <i class="fas fa-save me-2"></i> Zapisz zmiany
+        </button>
+        <a href="{% url 'edit_fizjo' %}" class="btn btn-outline-secondary btn-lg">Anuluj</a>
+      </div>
+    </form>
+  </div>
+</body>
+</html>

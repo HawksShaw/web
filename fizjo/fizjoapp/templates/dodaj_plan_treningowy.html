@@ -1,55 +1,93 @@
-<div class="container mt-5">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>Stwórz nowy plan treningowy</h2>
-    <a href="{% url 'dashboard_fizjo' %}" class="btn btn-outline-secondary"
-      >← Powrót</a
-    >
+{% load static %}
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Nowy plan – FizjoApp</title>
+  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}"/>
+  <link rel="stylesheet" href="{% static 'css/all.min.css' %}"/>
+  <style>
+    body{background:#f5edf8;}
+    .fizjo-nav{background:#1a0d1c;border-bottom:3px solid #cb34d9;}
+    .card-top::before{content:'';display:block;height:4px;background:linear-gradient(90deg,#cb34d9,#7b1fa2);}
+    .btn-fizjo{background:#cb34d9;color:#fff;border:none;}
+    .btn-fizjo:hover{background:#b52ec2;color:#fff;}
+    .step-num{width:30px;height:30px;border-radius:50%;background:#cb34d9;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;}
+    .exercise-row{border-left:3px solid #e0c8f5;background:#fdf8ff;border-radius:8px;padding:1rem;}
+  </style>
+</head>
+<body>
+  <nav class="fizjo-nav navbar navbar-dark shadow-sm mb-4">
+    <div class="container">
+      <span class="navbar-brand fw-bold"><i class="fas fa-notes-medical" style="color:#cb34d9"></i> FizjoApp – Nowy plan</span>
+      <a href="{% url 'programy_fizjo' %}" class="btn btn-outline-light btn-sm">← Wróć do planów</a>
+    </div>
+  </nav>
+
+  <div class="container pb-5" style="max-width:760px">
+    <form method="POST">
+      {% csrf_token %}
+
+      <div class="card shadow-sm mb-4 overflow-hidden">
+        <div class="card-top"></div>
+        <div class="card-body p-4">
+          <div class="d-flex align-items-center gap-3 mb-4">
+            <span class="step-num">1</span>
+            <div>
+              <h4 class="mb-0 fw-bold">Informacje o planie</h4>
+              <p class="text-muted small mb-0">Wybierz pacjenta i nazwij plan.</p>
+            </div>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Wybierz pacjenta</label>
+              {{ form.pacjent }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Nazwa planu</label>
+              {{ form.nazwa }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm mb-4 overflow-hidden">
+        <div class="card-top"></div>
+        <div class="card-body p-4">
+          <div class="d-flex align-items-center gap-3 mb-4">
+            <span class="step-num">2</span>
+            <div>
+              <h4 class="mb-0 fw-bold">Ćwiczenia</h4>
+              <p class="text-muted small mb-0">Wypełnij tylko potrzebne wiersze — puste zostaną pominięte.</p>
+            </div>
+          </div>
+
+          {{ formset.management_form }}
+          {% for f in formset %}
+          <div class="exercise-row mb-3">
+            <div class="row g-2 align-items-end">
+              <div class="col-md-5">
+                <label class="form-label small fw-semibold text-muted text-uppercase" style="letter-spacing:.04em">Ćwiczenie</label>
+                {{ f.nazwa_cwiczenia }}
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold text-muted text-uppercase" style="letter-spacing:.04em">Serie</label>
+                {{ f.serie }}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold text-muted text-uppercase" style="letter-spacing:.04em">Powtórzenia</label>
+                {{ f.powtórzenia }}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-fizjo btn-lg w-100 mb-5">
+        <i class="fas fa-save me-2"></i> Zapisz plan treningowy
+      </button>
+    </form>
   </div>
-
-  <form method="POST">
-    {% csrf_token %}
-
-    <div class="card p-4 mb-4 shadow-sm">
-      <h4 class="mb-3">Krok 1: Informacje o planie</h4>
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          <label class="form-label">Wybierz pacjenta:</label>
-          {{ form.pacjent }}
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label">Nazwa planu:</label>
-          {{ form.nazwa }}
-        </div>
-      </div>
-    </div>
-
-    <div class="card p-4 mb-4 shadow-sm">
-      <h4 class="mb-3">Krok 2: Dodaj ćwiczenia</h4>
-
-      {{ formset.management_form }} {% for cwiczenie_form in formset %}
-      <div class="row border-bottom mb-3 pb-2 align-items-end">
-        <div class="col-md-5 mb-2">
-          <label class="form-label">Nazwa ćwiczenia:</label>
-          {{ cwiczenie_form.nazwa_cwiczenia }}
-        </div>
-        <div class="col-md-3 mb-2">
-          <label class="form-label">Liczba serii:</label>
-          {{ cwiczenie_form.serie }}
-        </div>
-        <div class="col-md-4 mb-2">
-          <label class="form-label">Powtórzenia (np. '10' lub '30s'):</label>
-          {{ cwiczenie_form.powtórzenia }}
-        </div>
-      </div>
-      {% endfor %}
-      <p class="text-muted small">
-        Puste wiersze zostaną zignorowane. Wypełnij tylko te ćwiczenia, które są
-        potrzebne.
-      </p>
-    </div>
-
-    <button type="submit" class="btn btn-primary btn-lg w-100 mb-5">
-      Zapisz Plan Treningowy
-    </button>
-  </form>
-</div>
+</body>
+</html>

@@ -1,75 +1,85 @@
-{% block content %}
-<div class="container mt-5">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="fas fa-edit"></i> Zarządzaj planami treningowymi</h2>
-    <div>
-      <a
-        href="{% url 'dashboard_fizjo' %}"
-        class="btn btn-outline-secondary me-2"
-        >← Powrót</a
-      >
-      <a href="{% url 'dodaj_plan_treningowy' %}" class="btn btn-success">
-        + Dodaj nowy plan
-      </a>
+{% load static %}
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Zarządzaj planami – FizjoApp</title>
+  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}"/>
+  <link rel="stylesheet" href="{% static 'css/all.min.css' %}"/>
+  <style>
+    body{background:#f5edf8;}
+    .fizjo-nav{background:#1a0d1c;border-bottom:3px solid #cb34d9;}
+    .card-top::before{content:'';display:block;height:4px;background:linear-gradient(90deg,#cb34d9,#7b1fa2);}
+    .btn-fizjo{background:#cb34d9;color:#fff;border:none;}
+    .btn-fizjo:hover{background:#b52ec2;color:#fff;}
+    thead th{background:#1a0d1c!important;color:#fff!important;border:none!important;}
+  </style>
+</head>
+<body>
+  <nav class="fizjo-nav navbar navbar-dark shadow-sm mb-4">
+    <div class="container">
+      <span class="navbar-brand fw-bold"><i class="fas fa-notes-medical" style="color:#cb34d9"></i> FizjoApp – Edycja planów</span>
+      <a href="{% url 'dashboard_fizjo' %}" class="btn btn-outline-light btn-sm">← Panel główny</a>
     </div>
-  </div>
+  </nav>
 
-  <div class="card shadow-sm border-0">
-    <div class="card-body">
-      {% if plany %}
-      <table class="table table-hover align-middle">
-        <thead class="table-light">
-          <tr>
-            <th>Nazwa Planu</th>
-            <th>Pacjent</th>
-            <th>Data utworzenia</th>
-            <th class="text-end">Akcje</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for plan in plany %}
-          <tr>
-            <td><strong>{{ plan.nazwa }}</strong></td>
-            <td>{{ plan.pacjent.imie }} {{ plan.pacjent.nazwisko }}</td>
-            <td>{{ plan.data_utworzenia|date:"d.m.Y" }}</td>
-            <td class="text-end">
-              <a
-                href="{% url 'edytuj_plan_treningowy' plan.id %}"
-                class="btn btn-sm btn-warning text-white me-1"
-                >Edytuj</a
-              >
+  <div class="container pb-5" style="max-width:980px">
+    <div class="card shadow-sm overflow-hidden">
+      <div class="card-top"></div>
+      <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+          <div>
+            <h3 class="fw-bold mb-0">Zarządzaj planami treningowymi</h3>
+            <p class="text-muted small mb-0">Edytuj treść planów lub usuń nieaktywne.</p>
+          </div>
+          <a href="{% url 'dodaj_plan_treningowy' %}" class="btn btn-fizjo">
+            <i class="fas fa-plus me-1"></i> Dodaj nowy plan
+          </a>
+        </div>
 
-              <form
-                action="{% url 'usun_plan' plan.id %}"
-                method="POST"
-                class="d-inline"
-                onsubmit="
-                  return confirm(
-                    'Czy na pewno chcesz usunąć ten plan treningowy? Usunięcie planu usunie również przypisane do niego oceny. Tej operacji nie można cofnąć.',
-                  );
-                "
-              >
-                {% csrf_token %}
-                <button type="submit" class="btn btn-sm btn-danger">
-                  Usuń
-                </button>
-              </form>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <div class="text-center py-5">
-        <p class="text-muted mb-3">
-          Nie masz jeszcze utworzonych żadnych planów treningowych.
-        </p>
-        <a href="{% url 'dodaj_plan_treningowy' %}" class="btn btn-primary"
-          >Stwórz pierwszy plan</a
-        >
+        {% if plany %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th class="py-3 ps-3">Nazwa planu</th>
+                <th>Pacjent</th>
+                <th>Data utworzenia</th>
+                <th class="text-end pe-3">Akcje</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for plan in plany %}
+              <tr>
+                <td class="ps-3"><strong>{{ plan.nazwa }}</strong></td>
+                <td class="text-muted">{{ plan.pacjent.imie }} {{ plan.pacjent.nazwisko }}</td>
+                <td class="text-muted small">{{ plan.data_utworzenia|date:"d.m.Y" }}</td>
+                <td class="text-end pe-3">
+                  <a href="{% url 'edytuj_plan_treningowy' plan.id %}" class="btn btn-sm btn-warning text-white me-1">
+                    <i class="fas fa-pen"></i> Edytuj
+                  </a>
+                  <form action="{% url 'usun_plan' plan.id %}" method="POST" class="d-inline"
+                        onsubmit="return confirm('Usunąć plan „{{ plan.nazwa | escapejs }}"? Tej operacji nie można cofnąć.')">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-danger">
+                      <i class="fas fa-trash"></i> Usuń
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+          <i class="fas fa-folder-open fa-3x mb-3 d-block" style="color:#cb34d9;opacity:.35"></i>
+          <p class="text-muted mb-3">Nie masz jeszcze żadnych planów treningowych.</p>
+          <a href="{% url 'dodaj_plan_treningowy' %}" class="btn btn-fizjo">Stwórz pierwszy plan</a>
+        </div>
+        {% endif %}
       </div>
-      {% endif %}
     </div>
   </div>
-</div>
-{% endblock %}
+</body>
+</html>

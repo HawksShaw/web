@@ -7,10 +7,12 @@ from django.http import JsonResponse, HttpResponse
 from django.forms import modelformset_factory
 from django.utils import timezone
 from django.db.models import Q
+from django.core.paginator import Paginator
 import json
 import csv
 import random
 import string
+import datetime
 
 from django.contrib.auth.models import User
 
@@ -37,6 +39,21 @@ def generuj_kod_pacjenta():
             return kod
 
 
+def sesje_w_biezacym_tygodniu(plan, pacjent=None):
+    """Count distinct days a patient submitted exercise feedback for a plan this week."""
+    today = timezone.localdate()
+    start_of_week = today - datetime.timedelta(days=today.weekday())
+    end_of_week = start_of_week + datetime.timedelta(days=7)
+    qs = OcenaCwiczenia.objects.filter(
+        cwiczenie__plan=plan,
+        data_oceny__date__gte=start_of_week,
+        data_oceny__date__lt=end_of_week,
+    )
+    if pacjent:
+        qs = qs.filter(pacjent=pacjent)
+    return qs.dates('data_oceny', 'day').count()
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # DASHBOARDS
 # ─────────────────────────────────────────────────────────────────────────────
@@ -56,21 +73,12 @@ def dashboard_fizjo(request):
         return render(request, '403.html', status=403)
 
     fizjo = request.user.fizjoterapeuta
-
-    # Real stats from DB (replaces hardcoded "67 pacjentów" etc.)
-    moi_pacjenci_count = FizjoPacjent.objects.filter(
-        fizjoterapeuta=fizjo, status='zaakceptowany'
-    ).count()
+    moi_pacjenci_count = FizjoPacjent.objects.filter(fizjoterapeuta=fizjo, status='zaakceptowany').count()
     moje_plany_count = PlanTreningowy.objects.filter(fizjoterapeuta=fizjo).count()
     nadchodzace_wizyty_count = Wizyta.objects.filter(
-        lekarz=request.user,
-        status='zaakceptowana',
-        data_rozpoczecia__gte=timezone.now()
+        lekarz=request.user, status='zaakceptowana', data_rozpoczecia__gte=timezone.now()
     ).count()
-    oczekujace_count = Wizyta.objects.filter(
-        lekarz=request.user,
-        status='oczekujaca'
-    ).count()
+    oczekujace_count = Wizyta.objects.filter(lekarz=request.user, status='oczekujaca').count()
 
     context = {
         'fizjoterapeuci': Fizjoterapeuta.objects.all(),
@@ -82,33 +90,6 @@ def dashboard_fizjo(request):
     return render(request, 'dashboard_fizjo.html', context)
 
 
-# @login_required
-# def dashboard_pacjent(request):
-#     if not hasattr(request.user, 'pacjent'):
-#         return render(request, '403.html', status=403)
-
-#     pacjent = request.user.pacjent
-
-#     # Auto-generate code for patients registered before this feature existed
-#     if not pacjent.kod_pacjenta:
-#         pacjent.kod_pacjenta = generuj_kod_pacjenta()
-#         pacjent.save()
-
-#     pacjent_programy = Program.objects.filter(pacjent=pacjent)
-#     lekarze = Fizjoterapeuta.objects.select_related('user').all()
-
-#     # Pending connection requests sent by physios
-#     zaproszenia = FizjoPacjent.objects.filter(
-#         pacjent=pacjent, status='oczekujacy'
-#     ).select_related('fizjoterapeuta')
-
-#     context = {
-#         'programy': pacjent_programy,
-#         'lekarze': lekarze,
-#         'zaproszenia': zaproszenia,
-#     }
-#     return render(request, 'dashboard_pacjent.html', context)
-
 @login_required
 def dashboard_pacjent(request):
     if not hasattr(request.user, 'pacjent'):
@@ -116,35 +97,37 @@ def dashboard_pacjent(request):
 
     pacjent = request.user.pacjent
 
-    # Auto-generate code for patients
     if not pacjent.kod_pacjenta:
         pacjent.kod_pacjenta = generuj_kod_pacjenta()
         pacjent.save()
 
     pacjent_programy = Program.objects.filter(pacjent=pacjent)
     lekarze = Fizjoterapeuta.objects.select_related('user').all()
-
     zaproszenia = FizjoPacjent.objects.filter(
         pacjent=pacjent, status='oczekujacy'
     ).select_related('fizjoterapeuta')
-
-    # DODAJEMY TO: Pobieramy tylko przypisanych lekarzy (status zaakceptowany)
     moi_lekarze = Fizjoterapeuta.objects.filter(
         relacje_z_pacjentami__pacjent=pacjent,
         relacje_z_pacjentami__status='zaakceptowany'
     ).select_related('user')
+    nadchodzace_wizyty = Wizyta.objects.filter(
+        pacjent=pacjent, status='zaakceptowana', data_rozpoczecia__gte=timezone.now()
+    ).count()
+    plany_count = PlanTreningowy.objects.filter(pacjent=pacjent).count()
 
     context = {
         'programy': pacjent_programy,
         'lekarze': lekarze,
         'zaproszenia': zaproszenia,
-        'moi_lekarze': moi_lekarze, # Przekazujemy listę do szablonu
+        'moi_lekarze': moi_lekarze,
+        'nadchodzace_wizyty': nadchodzace_wizyty,
+        'plany_count': plany_count,
     }
     return render(request, 'dashboard_pacjent.html', context)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# GENERIC ADD (physio/patient/program)
+# GENERIC ADD
 # ─────────────────────────────────────────────────────────────────────────────
 
 def dodaj_element(request, form_class, szablon_tytul):
@@ -217,7 +200,7 @@ class CustomLoginView(LoginView):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# DOCTOR SEARCH  (FIX: only Fizjoterapeuta users, not all Users)
+# DOCTOR SEARCH
 # ─────────────────────────────────────────────────────────────────────────────
 
 @login_required
@@ -227,12 +210,10 @@ def wyszukiwarka_lekarzy(request):
         lekarze = Fizjoterapeuta.objects.filter(
             Q(imie__icontains=fraza) |
             Q(nazwisko__icontains=fraza) |
-            Q(specka__icontains=fraza) |
             Q(user__username__icontains=fraza)
         ).select_related('user')
     else:
         lekarze = Fizjoterapeuta.objects.select_related('user').all()
-
     return render(request, 'lista_lekarzy.html', {'lekarze': lekarze, 'fraza': fraza})
 
 
@@ -243,24 +224,21 @@ def profil_lekarza(request, lekarz_id):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# CALENDAR – PATIENT-FACING APIs
+# CALENDAR – PATIENT APIS
 # ─────────────────────────────────────────────────────────────────────────────
 
 @login_required
 def get_wizyty_pacjent(request, lekarz_id):
     """
-    Returns calendar events for a specific physio's profile page (patient view).
-    - Accepted + physio-blocked slots → red (can't book)
-    - Current patient's own pending request → yellow
+    Physio-profile calendar view for patients.
+    - Accepted + physio-blocked → red (unavailable)
+    - Patient's own pending → yellow (waiting)
+    - Patient's own REJECTED → grey (blocked so they can't re-book the same slot)
     """
     events = []
 
-    # Slots that are unavailable to everyone
-    blokady = Wizyta.objects.filter(
-        lekarz_id=lekarz_id,
-        status__in=['zaakceptowana', 'zablokowana']
-    )
-    for w in blokady:
+    # Slots unavailable to everyone
+    for w in Wizyta.objects.filter(lekarz_id=lekarz_id, status__in=['zaakceptowana', 'zablokowana']):
         events.append({
             'title': 'Termin zajęty',
             'start': w.data_rozpoczecia.isoformat(),
@@ -268,19 +246,22 @@ def get_wizyty_pacjent(request, lekarz_id):
             'color': '#dc3545',
         })
 
-    # Show the logged-in patient's own pending request (so they know it's waiting)
     if hasattr(request.user, 'pacjent'):
-        moje_oczekujace = Wizyta.objects.filter(
-            lekarz_id=lekarz_id,
-            status='oczekujaca',
-            pacjent=request.user.pacjent
-        )
-        for w in moje_oczekujace:
+        # Patient's own pending
+        for w in Wizyta.objects.filter(lekarz_id=lekarz_id, status='oczekujaca', pacjent=request.user.pacjent):
             events.append({
                 'title': '⏳ Oczekuje na potwierdzenie',
                 'start': w.data_rozpoczecia.isoformat(),
                 'end': w.data_zakonczenia.isoformat(),
                 'color': '#ffc107',
+            })
+        # Patient's own rejected — show as grey/blocked so they can't re-book
+        for w in Wizyta.objects.filter(lekarz_id=lekarz_id, status='odrzucona', pacjent=request.user.pacjent):
+            events.append({
+                'title': '❌ Twoja propozycja odrzucona',
+                'start': w.data_rozpoczecia.isoformat(),
+                'end': w.data_zakonczenia.isoformat(),
+                'color': '#6c757d',
             })
 
     return JsonResponse(events, safe=False)
@@ -288,100 +269,50 @@ def get_wizyty_pacjent(request, lekarz_id):
 
 @login_required
 def formularz_rezerwacji(request, lekarz_id):
-    """
-    Patient submits an appointment request form.
-    Creates Wizyta with status='oczekujaca' — physio must accept/reject.
-    """
     lekarz = get_object_or_404(User, id=lekarz_id)
-
     if request.method == 'POST':
         start = request.POST.get('start', '').replace(' ', '+')
         end = request.POST.get('end', '').replace(' ', '+')
         powod = request.POST.get('powod', '')
-
         pacjent = getattr(request.user, 'pacjent', None)
         pelne_nazwisko = request.user.get_full_name() or request.user.username
-
         Wizyta.objects.create(
-            lekarz=lekarz,
-            pacjent=pacjent,
-            pacjent_nazwa=pelne_nazwisko,
-            powod=powod,
-            data_rozpoczecia=start,
-            data_zakonczenia=end,
-            status='oczekujaca',  # ← awaiting physio approval
+            lekarz=lekarz, pacjent=pacjent, pacjent_nazwa=pelne_nazwisko,
+            powod=powod, data_rozpoczecia=start, data_zakonczenia=end, status='oczekujaca',
         )
         return redirect('profil_lekarza', lekarz_id=lekarz.id)
     else:
         start = request.GET.get('start', '').replace(' ', '+')
         end = request.GET.get('end', '').replace(' ', '+')
-        return render(request, 'formularz_rezerwacji.html', {
-            'lekarz': lekarz,
-            'start': start,
-            'end': end,
-        })
+        return render(request, 'formularz_rezerwacji.html', {'lekarz': lekarz, 'start': start, 'end': end})
 
 
-# @login_required
-# def get_moje_wizyty(request):
-#     """
-#     Patient's own appointments for their dashboard calendar.
-#     FIX: uses real FK instead of fragile string contains search.
-#     """
-#     if not hasattr(request.user, 'pacjent'):
-#         return JsonResponse([], safe=False)
-
-#     wizyty = Wizyta.objects.filter(
-#         pacjent=request.user.pacjent
-#     ).exclude(status='odrzucona').select_related('lekarz')
-
-#     events = []
-#     for w in wizyty:
-#         lekarz_name = w.lekarz.get_full_name() or w.lekarz.username
-#         if w.status == 'zaakceptowana':
-#             color = '#198754'
-#             title = f'✅ Wizyta u dr {lekarz_name}'
-#         else:  # oczekujaca
-#             color = '#ffc107'
-#             title = f'⏳ Oczekuje u dr {lekarz_name}'
-
-#         events.append({
-#             'title': title,
-#             'start': w.data_rozpoczecia.isoformat(),
-#             'end': w.data_zakonczenia.isoformat(),
-#             'color': color,
-#         })
-#     return JsonResponse(events, safe=False)
 @login_required
 def get_moje_wizyty(request):
     """
     Patient's own appointments for their dashboard calendar.
-    FIX: uses real FK instead of fragile string contains search.
+    Includes rejected (grey) so patients can see the slot is blocked.
     """
     if not hasattr(request.user, 'pacjent'):
         return JsonResponse([], safe=False)
 
-    # Podstawowe zapytanie: wszystkie nieodrzucone wizyty tego pacjenta
     wizyty = Wizyta.objects.filter(
         pacjent=request.user.pacjent
-    ).exclude(status='odrzucona').select_related('lekarz')
+    ).select_related('lekarz')
 
-    # ---- NOWOŚĆ: Filtrowanie po lekarzu, jeśli parametr został przekazany ----
     lekarz_id = request.GET.get('lekarz_id')
     if lekarz_id:
         wizyty = wizyty.filter(lekarz_id=lekarz_id)
-    # ------------------------------------------------------------------------
 
     events = []
     for w in wizyty:
         lekarz_name = w.lekarz.get_full_name() or w.lekarz.username
         if w.status == 'zaakceptowana':
-            color = '#198754'
-            title = f'✅ Wizyta u dr {lekarz_name}'
+            color, title = '#198754', f'✅ Wizyta u {lekarz_name}'
+        elif w.status == 'odrzucona':
+            color, title = '#6c757d', f'❌ Odrzucona – {lekarz_name}'
         else:  # oczekujaca
-            color = '#ffc107'
-            title = f'⏳ Oczekuje u dr {lekarz_name}'
-
+            color, title = '#ffc107', f'⏳ Oczekuje u {lekarz_name}'
         events.append({
             'title': title,
             'start': w.data_rozpoczecia.isoformat(),
@@ -390,41 +321,28 @@ def get_moje_wizyty(request):
         })
     return JsonResponse(events, safe=False)
 
+
 # ─────────────────────────────────────────────────────────────────────────────
-# CALENDAR – PHYSIO-FACING APIs
+# CALENDAR – PHYSIO APIS
 # ─────────────────────────────────────────────────────────────────────────────
 
 @login_required
 def get_wizyty(request):
-    """
-    Returns all appointments for the logged-in physio.
-    Colour-coded: yellow=pending, green=accepted, grey=rejected, red=blocked-by-physio.
-    """
     wizyty = Wizyta.objects.filter(lekarz_id=request.user.id).select_related('pacjent')
     events = []
     for w in wizyty:
         if w.status == 'oczekujaca':
-            color = '#ffc107'
-            title = f'⏳ {w.pacjent_nazwa}'
+            color, title = '#ffc107', f'⏳ {w.pacjent_nazwa}'
         elif w.status == 'zaakceptowana':
-            color = '#198754'
-            title = f'✅ {w.pacjent_nazwa}'
+            color, title = '#198754', f'✅ {w.pacjent_nazwa}'
         elif w.status == 'odrzucona':
-            color = '#6c757d'
-            title = f'❌ {w.pacjent_nazwa}'
+            color, title = '#6c757d', f'❌ {w.pacjent_nazwa}'
         else:  # zablokowana
-            color = '#dc3545'
-            title = 'Zablokowane'
-
+            color, title = '#dc3545', 'Zablokowane'
         events.append({
-            'id': w.id,
-            'title': title,
-            'start': w.data_rozpoczecia.isoformat(),
-            'end': w.data_zakonczenia.isoformat(),
-            'color': color,
-            'status': w.status,
-            'powod': w.powod or '',
-            'pacjent_nazwa': w.pacjent_nazwa,
+            'id': w.id, 'title': title,
+            'start': w.data_rozpoczecia.isoformat(), 'end': w.data_zakonczenia.isoformat(),
+            'color': color, 'status': w.status, 'powod': w.powod or '', 'pacjent_nazwa': w.pacjent_nazwa,
         })
     return JsonResponse(events, safe=False)
 
@@ -432,14 +350,12 @@ def get_wizyty(request):
 @csrf_exempt
 @login_required
 def dodaj_wizyte(request):
-    """Physio blocks their own calendar slot."""
     if request.method == 'POST':
         data = json.loads(request.body)
         Wizyta.objects.create(
             lekarz_id=request.user.id,
             pacjent_nazwa="Zablokowane przez fizjoterapeutę",
-            data_rozpoczecia=data['start'],
-            data_zakonczenia=data['end'],
+            data_rozpoczecia=data['start'], data_zakonczenia=data['end'],
             status='zablokowana',
         )
         return JsonResponse({'status': 'Zapisano pomyślnie'})
@@ -447,7 +363,6 @@ def dodaj_wizyte(request):
 
 @login_required
 def zatwierdz_wizyte(request, wizyta_id):
-    """Physio accepts a pending patient appointment request."""
     if not hasattr(request.user, 'fizjoterapeuta'):
         return JsonResponse({'error': 'Brak uprawnień'}, status=403)
     wizyta = get_object_or_404(Wizyta, id=wizyta_id, lekarz=request.user)
@@ -458,13 +373,22 @@ def zatwierdz_wizyte(request, wizyta_id):
 
 @login_required
 def odrzuc_wizyte(request, wizyta_id):
-    """Physio rejects a pending patient appointment request."""
     if not hasattr(request.user, 'fizjoterapeuta'):
         return JsonResponse({'error': 'Brak uprawnień'}, status=403)
     wizyta = get_object_or_404(Wizyta, id=wizyta_id, lekarz=request.user)
     wizyta.status = 'odrzucona'
     wizyta.save()
     return JsonResponse({'status': 'odrzucona'})
+
+
+@login_required
+def usun_wizyte(request, wizyta_id):
+    """Physio deletes a rejected appointment, freeing the slot entirely."""
+    if not hasattr(request.user, 'fizjoterapeuta'):
+        return JsonResponse({'error': 'Brak uprawnień'}, status=403)
+    wizyta = get_object_or_404(Wizyta, id=wizyta_id, lekarz=request.user, status='odrzucona')
+    wizyta.delete()
+    return JsonResponse({'status': 'usunieto'})
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -481,15 +405,8 @@ def pacjenci_fizjo(request):
     if not hasattr(request.user, 'fizjoterapeuta'):
         return render(request, '403.html', status=403)
     fizjo = request.user.fizjoterapeuta
-
-    zaakceptowani = FizjoPacjent.objects.filter(
-        fizjoterapeuta=fizjo, status='zaakceptowany'
-    ).select_related('pacjent')
-
-    oczekujace = FizjoPacjent.objects.filter(
-        fizjoterapeuta=fizjo, status='oczekujacy'
-    ).select_related('pacjent')
-
+    zaakceptowani = FizjoPacjent.objects.filter(fizjoterapeuta=fizjo, status='zaakceptowany').select_related('pacjent')
+    oczekujace = FizjoPacjent.objects.filter(fizjoterapeuta=fizjo, status='oczekujacy').select_related('pacjent')
     return render(request, 'pacjenci_fizjo.html', {
         'pacjenci': [r.pacjent for r in zaakceptowani],
         'oczekujace': oczekujace,
@@ -498,43 +415,89 @@ def pacjenci_fizjo(request):
 
 @login_required
 def edit_fizjo(request):
-    return render(request, 'edit_fizjo.html')
+    if not hasattr(request.user, 'fizjoterapeuta'):
+        return render(request, '403.html', status=403)
+    fizjo = request.user.fizjoterapeuta
+    plany = PlanTreningowy.objects.filter(fizjoterapeuta=fizjo).order_by('-data_utworzenia')
+    return render(request, 'edit_fizjo.html', {'plany': plany})
+
+
+@login_required
+def log_fizjo(request):
+    """
+    Activity log: all exercise feedback by this physio's patients.
+    Supports search, sort, and pagination via GET params.
+    FIX: view now passes page_obj that the template expects.
+    """
+    if not hasattr(request.user, 'fizjoterapeuta'):
+        return render(request, '403.html', status=403)
+
+    fizjo = request.user.fizjoterapeuta
+    search = request.GET.get('search', '').strip()
+    sort = request.GET.get('sort', 'data_desc')
+    try:
+        per_page = int(request.GET.get('per_page', 10))
+    except ValueError:
+        per_page = 10
+
+    oceny = (
+        OcenaCwiczenia.objects
+        .filter(cwiczenie__plan__fizjoterapeuta=fizjo)
+        .select_related('cwiczenie', 'cwiczenie__plan', 'cwiczenie__plan__pacjent', 'pacjent')
+    )
+
+    if search:
+        oceny = oceny.filter(
+            Q(pacjent__imie__icontains=search) |
+            Q(pacjent__nazwisko__icontains=search) |
+            Q(cwiczenie__nazwa_cwiczenia__icontains=search) |
+            Q(uwagi__icontains=search)
+        )
+
+    sort_map = {
+        'data_desc': '-data_oceny',
+        'bol_desc': '-skala_bolu',
+        'bol_asc': 'skala_bolu',
+        'pacjent_asc': 'pacjent__nazwisko',
+        'pacjent_desc': '-pacjent__nazwisko',
+    }
+    oceny = oceny.order_by(sort_map.get(sort, '-data_oceny'))
+
+    paginator = Paginator(oceny, per_page)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
+
+    return render(request, 'log_fizjo.html', {
+        'page_obj': page_obj,
+        'current_sort': sort,
+        'current_per_page': str(per_page),
+        'current_search': search,
+    })
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PATIENT CODE SYSTEM – physio adds by code, patient accepts/rejects
+# PATIENT CODE SYSTEM
 # ─────────────────────────────────────────────────────────────────────────────
 
 @login_required
 def dodaj_pacjenta_po_kodzie(request):
-    """Physio enters a patient code → creates a pending FizjoPacjent."""
     if not hasattr(request.user, 'fizjoterapeuta'):
         return render(request, '403.html', status=403)
-
     if request.method != 'POST':
         return redirect('pacjenci_fizjo')
 
     fizjo = request.user.fizjoterapeuta
     kod = request.POST.get('kod', '').strip().upper()
 
-    # Re-fetch existing data for the template in case of error
     def render_z_bledem(blad):
-        zaakceptowani = FizjoPacjent.objects.filter(
-            fizjoterapeuta=fizjo, status='zaakceptowany'
-        ).select_related('pacjent')
-        oczekujace = FizjoPacjent.objects.filter(
-            fizjoterapeuta=fizjo, status='oczekujacy'
-        ).select_related('pacjent')
+        zaakceptowani = FizjoPacjent.objects.filter(fizjoterapeuta=fizjo, status='zaakceptowany').select_related('pacjent')
+        oczekujace = FizjoPacjent.objects.filter(fizjoterapeuta=fizjo, status='oczekujacy').select_related('pacjent')
         return render(request, 'pacjenci_fizjo.html', {
             'pacjenci': [r.pacjent for r in zaakceptowani],
-            'oczekujace': oczekujace,
-            'blad': blad,
-            'wpisany_kod': kod,
+            'oczekujace': oczekujace, 'blad': blad, 'wpisany_kod': kod,
         })
 
     if not kod:
         return render_z_bledem('Wpisz kod pacjenta.')
-
     try:
         pacjent = Pacjent.objects.get(kod_pacjenta=kod)
     except Pacjent.DoesNotExist:
@@ -547,22 +510,15 @@ def dodaj_pacjenta_po_kodzie(request):
         elif existing.status == 'oczekujacy':
             return render_z_bledem('Zaproszenie do tego pacjenta zostało już wysłane — czeka na odpowiedź.')
 
-    FizjoPacjent.objects.create(
-        fizjoterapeuta=fizjo,
-        pacjent=pacjent,
-        status='oczekujacy',
-    )
+    FizjoPacjent.objects.create(fizjoterapeuta=fizjo, pacjent=pacjent, status='oczekujacy')
     return redirect('pacjenci_fizjo')
 
 
 @login_required
 def zaakceptuj_zaproszenie(request, relacja_id):
-    """Patient accepts a physio connection request."""
     if not hasattr(request.user, 'pacjent'):
         return render(request, '403.html', status=403)
-    relacja = get_object_or_404(
-        FizjoPacjent, id=relacja_id, pacjent=request.user.pacjent, status='oczekujacy'
-    )
+    relacja = get_object_or_404(FizjoPacjent, id=relacja_id, pacjent=request.user.pacjent, status='oczekujacy')
     relacja.status = 'zaakceptowany'
     relacja.save()
     return redirect('dashboard_pacjent')
@@ -570,41 +526,11 @@ def zaakceptuj_zaproszenie(request, relacja_id):
 
 @login_required
 def odrzuc_zaproszenie(request, relacja_id):
-    """Patient declines a physio connection request."""
     if not hasattr(request.user, 'pacjent'):
         return render(request, '403.html', status=403)
-    relacja = get_object_or_404(
-        FizjoPacjent, id=relacja_id, pacjent=request.user.pacjent, status='oczekujacy'
-    )
+    relacja = get_object_or_404(FizjoPacjent, id=relacja_id, pacjent=request.user.pacjent, status='oczekujacy')
     relacja.delete()
     return redirect('dashboard_pacjent')
-
-
-@login_required
-def log_fizjo(request):
-    """
-    Activity log: all exercise feedback submitted by this physio's patients.
-    Ordered newest-first.
-    """
-    if not hasattr(request.user, 'fizjoterapeuta'):
-        return render(request, '403.html', status=403)
-
-    fizjo = request.user.fizjoterapeuta
-
-    # All exercise ratings for plans created by this physio
-    oceny = (
-        OcenaCwiczenia.objects
-        .filter(cwiczenie__plan__fizjoterapeuta=fizjo)
-        .select_related(
-            'cwiczenie',
-            'cwiczenie__plan',
-            'cwiczenie__plan__pacjent',
-            'pacjent',
-        )
-        .order_by('-data_oceny')
-    )
-
-    return render(request, 'log_fizjo.html', {'oceny': oceny})
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -616,9 +542,7 @@ def programy_fizjo(request):
     if not hasattr(request.user, 'fizjoterapeuta'):
         return render(request, '403.html', status=403)
     fizjo = request.user.fizjoterapeuta
-    plany = PlanTreningowy.objects.filter(
-        fizjoterapeuta=fizjo
-    ).order_by('-data_utworzenia')
+    plany = PlanTreningowy.objects.filter(fizjoterapeuta=fizjo).order_by('-data_utworzenia')
     return render(request, 'programy_fizjo.html', {'plany': plany})
 
 
@@ -626,11 +550,8 @@ def programy_fizjo(request):
 def dodaj_plan_treningowy(request):
     if not hasattr(request.user, 'fizjoterapeuta'):
         return render(request, '403.html', status=403)
-
     fizjo = request.user.fizjoterapeuta
-
     if request.method == 'POST':
-        # Dodajemy argument fizjo=fizjo
         form = PlanTreningowyForm(request.POST, fizjo=fizjo)
         if form.is_valid():
             plan = form.save(commit=False)
@@ -641,14 +562,9 @@ def dodaj_plan_treningowy(request):
                 formset.save()
                 return redirect('dashboard_fizjo')
     else:
-        # Dodajemy argument fizjo=fizjo
         form = PlanTreningowyForm(fizjo=fizjo)
         formset = CwiczenieFormSet()
-
-    return render(request, 'dodaj_plan_treningowy.html', {
-        'form': form,
-        'formset': formset,
-    })
+    return render(request, 'dodaj_plan_treningowy.html', {'form': form, 'formset': formset})
 
 
 @login_required
@@ -658,9 +574,11 @@ def szczegoly_planu_fizjo(request, plan_id):
     fizjo = request.user.fizjoterapeuta
     plan = get_object_or_404(PlanTreningowy, id=plan_id, fizjoterapeuta=fizjo)
     cwiczenia = plan.cwiczenia.prefetch_related('oceny__pacjent').all()
+    sesje_w_tygodniu = sesje_w_biezacym_tygodniu(plan)
     return render(request, 'szczegoly_planu_fizjo.html', {
         'plan': plan,
         'cwiczenia': cwiczenia,
+        'sesje_w_tygodniu': sesje_w_tygodniu,
     })
 
 
@@ -670,9 +588,74 @@ def eksportuj_plan_csv(request, plan_id):
     response['Content-Disposition'] = f'attachment; filename="plan_{plan.id}.csv"'
     writer = csv.writer(response)
     writer.writerow(['Nazwa cwiczenia', 'Serie', 'Powtorzenia'])
-    for cwiczenie in plan.cwiczenia.all():
-        writer.writerow([cwiczenie.nazwa_cwiczenia, cwiczenie.serie, cwiczenie.powtórzenia])
+    for c in plan.cwiczenia.all():
+        writer.writerow([c.nazwa_cwiczenia, c.serie, c.powtórzenia])
     return response
+
+
+@login_required
+def usun_plan(request, plan_id):
+    if not hasattr(request.user, 'fizjoterapeuta'):
+        return JsonResponse({'error': 'Brak uprawnień'}, status=403)
+    plan = get_object_or_404(PlanTreningowy, id=plan_id, fizjoterapeuta=request.user.fizjoterapeuta)
+    if request.method == 'POST':
+        plan.delete()
+        return redirect('edit_fizjo')
+    return redirect('edit_fizjo')
+
+
+@login_required
+def edytuj_plan_treningowy(request, plan_id):
+    if not hasattr(request.user, 'fizjoterapeuta'):
+        return render(request, '403.html', status=403)
+    fizjo = request.user.fizjoterapeuta
+    plan = get_object_or_404(PlanTreningowy, id=plan_id, fizjoterapeuta=fizjo)
+    if request.method == 'POST':
+        form = PlanTreningowyForm(request.POST, instance=plan, fizjo=fizjo)
+        formset = CwiczenieFormSet(request.POST, instance=plan)
+        if form.is_valid() and formset.is_valid():
+            form.save()
+            formset.save()
+            return redirect('edit_fizjo')
+    else:
+        form = PlanTreningowyForm(instance=plan, fizjo=fizjo)
+        formset = CwiczenieFormSet(instance=plan)
+    return render(request, 'edytuj_plan_treningowy.html', {'form': form, 'formset': formset, 'plan': plan})
+
+
+@login_required
+def importuj_plan_csv(request):
+    if not hasattr(request.user, 'fizjoterapeuta'):
+        return render(request, '403.html', status=403)
+    fizjo = request.user.fizjoterapeuta
+    if request.method == 'POST':
+        nazwa_planu = request.POST.get('nazwa')
+        pacjent_id = request.POST.get('pacjent')
+        plik = request.FILES.get('plik_csv')
+        if not (nazwa_planu and pacjent_id and plik):
+            return HttpResponse("Wszystkie pola są wymagane.", status=400)
+        if not plik.name.endswith('.csv'):
+            return HttpResponse("Plik musi mieć rozszerzenie .csv", status=400)
+        pacjent = get_object_or_404(Pacjent, id=pacjent_id)
+        try:
+            decoded_file = plik.read().decode('utf-8-sig').splitlines()
+            reader = csv.reader(decoded_file)
+            next(reader, None)
+            plan = PlanTreningowy.objects.create(fizjoterapeuta=fizjo, pacjent=pacjent, nazwa=nazwa_planu)
+            for row in reader:
+                if len(row) >= 3:
+                    Cwiczenie.objects.create(
+                        plan=plan, nazwa_cwiczenia=row[0].strip(),
+                        serie=row[1].strip(), powtórzenia=row[2].strip()
+                    )
+            return redirect('programy_fizjo')
+        except Exception as e:
+            return HttpResponse(f"Błąd przetwarzania pliku CSV: {e}", status=400)
+
+    pacjenci = Pacjent.objects.filter(
+        relacje_z_fizjo__fizjoterapeuta=fizjo, relacje_z_fizjo__status='zaakceptowany'
+    )
+    return render(request, 'importuj_plan_csv.html', {'pacjenci': pacjenci})
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -683,40 +666,27 @@ def eksportuj_plan_csv(request, plan_id):
 def plany_treningowe(request):
     if not hasattr(request.user, 'pacjent'):
         return render(request, '403.html', status=403)
-    plany = PlanTreningowy.objects.filter(
-        pacjent=request.user.pacjent
-    ).order_by('-data_utworzenia')
-    return render(request, 'plany_treningowe.html', {'plany': plany})
+    pacjent = request.user.pacjent
+    plany = PlanTreningowy.objects.filter(pacjent=pacjent).order_by('-data_utworzenia')
+    # Attach this week's session count to each plan
+    plany_z_sesjami = [(p, sesje_w_biezacym_tygodniu(p, pacjent)) for p in plany]
+    return render(request, 'plany_treningowe.html', {'plany_z_sesjami': plany_z_sesjami})
 
 
 @login_required
 def szczegoly_planu(request, plan_id):
-    """
-    Patient views a training plan and submits pain ratings.
-
-    FIX: OcenaCwiczenia is now a ForeignKey (not OneToOne) so a patient
-    can submit feedback multiple times — each submission creates a new row.
-    We iterate formset.forms by index to correctly match each form to its
-    exercise, regardless of which forms were left empty.
-    """
     if not hasattr(request.user, 'pacjent'):
         return render(request, '403.html', status=403)
-
     pacjent = request.user.pacjent
     plan = get_object_or_404(PlanTreningowy, id=plan_id, pacjent=pacjent)
     cwiczenia = list(plan.cwiczenia.all())
 
-    OcenaFormSet = modelformset_factory(
-        OcenaCwiczenia,
-        form=OcenaCwiczeniaForm,
-        extra=len(cwiczenia)
-    )
+    OcenaFormSet = modelformset_factory(OcenaCwiczenia, form=OcenaCwiczeniaForm, extra=len(cwiczenia))
 
     if request.method == 'POST':
         formset = OcenaFormSet(request.POST, queryset=OcenaCwiczenia.objects.none())
         if formset.is_valid():
             for i, form in enumerate(formset.forms):
-                # Only save forms the patient actually filled in
                 if form.has_changed() and i < len(cwiczenia):
                     ocena = form.save(commit=False)
                     ocena.cwiczenie = cwiczenia[i]
@@ -726,139 +696,23 @@ def szczegoly_planu(request, plan_id):
     else:
         formset = OcenaFormSet(queryset=OcenaCwiczenia.objects.none())
 
-    # Get latest existing rating per exercise so the patient can see their history
     ostatnie_oceny = {}
     for c in cwiczenia:
-        ostatnia = c.oceny.filter(pacjent=pacjent).first()  # ordered by -data_oceny
+        ostatnia = c.oceny.filter(pacjent=pacjent).first()
         if ostatnia:
             ostatnie_oceny[c.id] = ostatnia
 
-    zestaw = list(zip(cwiczenia, formset.forms))
+    zestaw = [(c, formset.forms[i], ostatnie_oceny.get(c.id)) for i, c in enumerate(cwiczenia)]
+    sesje_w_tygodniu = sesje_w_biezacym_tygodniu(plan, pacjent)
 
     return render(request, 'szczegoly_planu.html', {
         'plan': plan,
         'zestaw': zestaw,
         'formset': formset,
-        'ostatnie_oceny': ostatnie_oceny,
+        'sesje_w_tygodniu': sesje_w_tygodniu,
     })
 
 
 @login_required
 def strona_sukcesu(request):
     return render(request, 'sukces.html')
-
-
-@login_required
-def edit_fizjo(request):
-    """Widok panelu edycji/zarządzania planami."""
-    if not hasattr(request.user, 'fizjoterapeuta'):
-        return render(request, '403.html', status=403)
-        
-    fizjo = request.user.fizjoterapeuta
-    # Pobieramy wszystkie plany tego fizjoterapeuty, sortując od najnowszego
-    plany = PlanTreningowy.objects.filter(fizjoterapeuta=fizjo).order_by('-data_utworzenia')
-    
-    return render(request, 'edit_fizjo.html', {'plany': plany})
-
-@login_required
-def usun_plan(request, plan_id):
-    """Widok odpowiadający za usunięcie planu."""
-    if not hasattr(request.user, 'fizjoterapeuta'):
-        return JsonResponse({'error': 'Brak uprawnień'}, status=403)
-        
-    fizjo = request.user.fizjoterapeuta
-    # Pobieramy plan, upewniając się, że należy do zalogowanego fizjoterapeuty
-    plan = get_object_or_404(PlanTreningowy, id=plan_id, fizjoterapeuta=fizjo)
-    
-    # Dla bezpieczeństwa usuwamy tylko przy żądaniu POST
-    if request.method == 'POST':
-        plan.delete()
-        # Po udanym usunięciu wracamy do panelu edycji
-        return redirect('edit_fizjo')
-        
-    return redirect('edit_fizjo')
-
-@login_required
-def edytuj_plan_treningowy(request, plan_id):
-    if not hasattr(request.user, 'fizjoterapeuta'):
-        return render(request, '403.html', status=403)
-
-    fizjo = request.user.fizjoterapeuta
-    plan = get_object_or_404(PlanTreningowy, id=plan_id, fizjoterapeuta=fizjo)
-
-    if request.method == 'POST':
-        # Dodajemy argument fizjo=fizjo
-        form = PlanTreningowyForm(request.POST, instance=plan, fizjo=fizjo)
-        formset = CwiczenieFormSet(request.POST, instance=plan)
-        
-        if form.is_valid() and formset.is_valid():
-            form.save()
-            formset.save()
-            return redirect('edit_fizjo')
-    else:
-        # Dodajemy argument fizjo=fizjo
-        form = PlanTreningowyForm(instance=plan, fizjo=fizjo)
-        formset = CwiczenieFormSet(instance=plan)
-
-    return render(request, 'edytuj_plan_treningowy.html', {
-        'form': form,
-        'formset': formset,
-        'plan': plan,
-    })
-
-@login_required
-def importuj_plan_csv(request):
-    if not hasattr(request.user, 'fizjoterapeuta'):
-        return render(request, '403.html', status=403)
-
-    fizjo = request.user.fizjoterapeuta
-
-    if request.method == 'POST':
-        nazwa_planu = request.POST.get('nazwa')
-        pacjent_id = request.POST.get('pacjent')
-        plik = request.FILES.get('plik_csv')
-
-        if not (nazwa_planu and pacjent_id and plik):
-            return HttpResponse("Wszystkie pola są wymagane.", status=400)
-
-        if not plik.name.endswith('.csv'):
-            return HttpResponse("Plik musi mieć rozszerzenie .csv", status=400)
-
-        pacjent = get_object_or_404(Pacjent, id=pacjent_id)
-
-        try:
-            # Odczyt pliku (używamy utf-8-sig dla bezpieczeństwa znaków PL z Excela)
-            decoded_file = plik.read().decode('utf-8-sig').splitlines()
-            reader = csv.reader(decoded_file)
-            
-            # Pomijamy nagłówek ('Nazwa cwiczenia', 'Serie', 'Powtorzenia')
-            next(reader, None)
-
-            # Jeśli plik się wczytał, tworzymy PlanTreningowy w bazie
-            plan = PlanTreningowy.objects.create(
-                fizjoterapeuta=fizjo,
-                pacjent=pacjent,
-                nazwa=nazwa_planu
-            )
-
-            # Pętla po wierszach i tworzenie ćwiczeń
-            for row in reader:
-                if len(row) >= 3:
-                    Cwiczenie.objects.create(
-                        plan=plan,
-                        nazwa_cwiczenia=row[0].strip(),
-                        serie=row[1].strip(),
-                        powtórzenia=row[2].strip()
-                    )
-            
-            return redirect('programy_fizjo')
-        except Exception as e:
-            return HttpResponse(f"Wystąpił błąd przetwarzania pliku CSV: {e}", status=400)
-
-    # Dla metody GET ładujemy formularz z listą zaakceptowanych pacjentów (tak jak chcieliśmy wcześniej)
-    pacjenci = Pacjent.objects.filter(
-        relacje_z_fizjo__fizjoterapeuta=fizjo,
-        relacje_z_fizjo__status='zaakceptowany'
-    )
-    
-    return render(request, 'importuj_plan_csv.html', {'pacjenci': pacjenci})

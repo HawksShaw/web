@@ -89,10 +89,16 @@ class OcenaCwiczeniaForm(forms.ModelForm):
 class PlanTreningowyForm(forms.ModelForm):
     class Meta:
         model = PlanTreningowy
-        fields = ['pacjent', 'nazwa']
+        fields = ['pacjent', 'nazwa', 'sesje_tygodniowo', 'czas_trwania_tygodnie']
         widgets = {
             'pacjent': forms.Select(attrs={'class': 'form-select'}),
             'nazwa': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Np. Powrót po kontuzji ACL'}),
+            'sesje_tygodniowo': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'max': '7'}),
+            'czas_trwania_tygodnie': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
+        }
+        labels = {
+            'sesje_tygodniowo': 'Sesji w tygodniu',
+            'czas_trwania_tygodnie': 'Czas trwania (tygodnie)',
         }
 
     def __init__(self, *args, **kwargs):

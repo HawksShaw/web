@@ -1,18 +1,35 @@
-<div class="container mt-5 text-center">
-  <div class="card p-5 shadow-sm">
-    <h2 class="text-success mb-3">✅ Trening zapisany!</h2>
-    <p>
-      Twój fizjoterapeuta otrzymał Twój feedback dotyczący dzisiejszych ćwiczeń.
-    </p>
-
-    <div class="mt-4">
-      <a href="{% url 'plany_treningowe' %}" class="btn btn-primary me-2">
-        Wróć do swoich planów
+{% load static %}
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Zapisano – FizjoApp</title>
+  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}"/>
+  <link rel="stylesheet" href="{% static 'css/all.min.css' %}"/>
+  <style>
+    body{background:#f3eafe;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+    .s-card{background:#fff;border-radius:16px;box-shadow:0 4px 32px rgba(144,51,214,.13);overflow:hidden;max-width:480px;width:100%;}
+    .s-card::before{content:'';display:block;height:5px;background:linear-gradient(90deg,#9033d6,#6722a8);}
+    .btn-pac{background:#9033d6;color:#fff;border:none;}
+    .btn-pac:hover{background:#7a28b8;color:#fff;}
+    .check-circle{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#9033d6,#6722a8);display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;}
+  </style>
+</head>
+<body>
+  <div class="s-card m-3 text-center p-5">
+    <div class="check-circle">
+      <i class="fas fa-check fa-2x text-white"></i>
+    </div>
+    <h3 class="fw-bold mb-2">Trening zapisany!</h3>
+    <p class="text-muted mb-4">Twój fizjoterapeuta otrzymał Twój feedback dotyczący dzisiejszych ćwiczeń.</p>
+    <div class="d-flex flex-column gap-2">
+      <a href="{% url 'plany_treningowe' %}" class="btn btn-pac btn-lg">
+        <i class="fas fa-dumbbell me-2"></i> Wróć do moich planów
       </a>
-
-      <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
-        Wróć do Panelu Głównego
+      <a href="{% url 'dashboard_pacjent' %}" class="btn btn-outline-secondary">
+        Panel pacjenta
       </a>
     </div>
   </div>
-</div>
+</body>
+</html>

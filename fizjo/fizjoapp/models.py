@@ -13,7 +13,7 @@ class Fizjoterapeuta(models.Model):
     tytul = models.CharField(max_length=20, verbose_name="Tytuł Naukowy")
 
     def __str__(self):
-        return f"{self.tytul} {self.imie} {self.nazwisko} ({self.specka})"
+        return f"{self.imie} {self.nazwisko}"
 
 class Pacjent(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
@@ -137,6 +137,10 @@ class PlanTreningowy(models.Model):
     pacjent = models.ForeignKey('Pacjent', on_delete=models.CASCADE, related_name='plany')
     nazwa = models.CharField(max_length=200)
     data_utworzenia = models.DateTimeField(auto_now_add=True)
+    # How many sessions per week the physio prescribes
+    sesje_tygodniowo = models.IntegerField(default=3, verbose_name="Sesji w tygodniu")
+    # Total duration of the plan in weeks
+    czas_trwania_tygodnie = models.IntegerField(default=4, verbose_name="Czas trwania (tygodnie)")
 
     def __str__(self):
         return f"{self.nazwa} - {self.pacjent}"
@@ -174,4 +178,3 @@ class OcenaCwiczenia(models.Model):
 
     def __str__(self):
         return f"Ocena: {self.cwiczenie} przez {self.pacjent} ({self.data_oceny.date() if self.data_oceny else '?'})"
-

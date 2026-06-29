@@ -1,164 +1,246 @@
 {% load static %}
 <!doctype html>
 <html lang="pl">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Panel pacjenta</title>
-    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}" />
-    <link rel="stylesheet" href="{% static 'css/all.min.css' %}" />
-  </head>
-  <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-black shadow-sm">
-      <div class="container">
-        <span class="navbar-brand mb-0 h1">
-          <i class="fas fa-notes-medical text-success"></i> FizjoApp
-        </span>
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Panel pacjenta – FizjoApp</title>
+  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}"/>
+  <link rel="stylesheet" href="{% static 'css/all.min.css' %}"/>
+  <style>
+    body { background:#f3eafe; font-family:'Segoe UI',system-ui,sans-serif; }
 
-        <div class="d-flex align-items-center">
-          <span class="text-light me-3">
-            Zalogowany jako:
-            <strong class="text-warning">{{ user.username }}</strong>
-          </span>
-          <a href="{% url 'wyloguj' %}" class="btn btn-outline-danger btn-sm">
-            <i class="fas fa-sign-out-alt"></i> Wyloguj
-          </a>
+    /* ── Nav ── */
+    .pac-nav { background:#0d0a17; border-bottom:3px solid #9033d6; }
+
+    /* ── Cards ── */
+    .main-card { background:#fff; border-radius:16px; box-shadow:0 4px 24px rgba(144,51,214,.10); overflow:hidden; }
+    .main-card::before { content:''; display:block; height:5px; background:linear-gradient(90deg,#9033d6,#6722a8); }
+
+    /* ── Stat cards ── */
+    .stat-card { border-radius:12px; border:none; box-shadow:0 2px 12px rgba(144,51,214,.08); transition:transform .15s,box-shadow .15s; text-decoration:none; color:inherit; display:block; }
+    .stat-card:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(144,51,214,.15); color:inherit; }
+    .stat-icon { font-size:2.2rem; color:#9033d6; }
+
+    /* ── Buttons ── */
+    .btn-pac { background:#9033d6; color:#fff; border:none; }
+    .btn-pac:hover { background:#7a28b8; color:#fff; }
+    .btn-pac-outline { border:1.5px solid #9033d6; color:#9033d6; background:transparent; }
+    .btn-pac-outline:hover { background:#9033d6; color:#fff; }
+
+    /* ── Code box ── */
+    .code-box { font-family:monospace; font-size:1.4rem; letter-spacing:.15em; background:#f5effe; border:2px solid #d4b0f5; border-radius:10px; padding:.5rem 1.25rem; display:inline-block; }
+
+    /* ── Calendar ── */
+    :root {
+      --fc-border-color: #e5d4f8;
+      --fc-today-bg-color: rgba(144,51,214,.07);
+      --fc-highlight-color: rgba(144,51,214,.12);
+      --fc-button-bg-color: #9033d6;
+      --fc-button-border-color: #7a28b8;
+      --fc-button-hover-bg-color: #7a28b8;
+      --fc-button-hover-border-color: #6722a8;
+      --fc-button-active-bg-color: #6722a8;
+      --fc-button-active-border-color: #6722a8;
+    }
+    .fc .fc-toolbar-title { font-size:1.2rem; font-weight:700; color:#0d0a17; }
+    .fc .fc-button { border-radius:8px!important; font-weight:600; font-size:.8rem; text-transform:uppercase; letter-spacing:.04em; }
+    .fc .fc-button-group .fc-button:first-child { border-radius:8px 0 0 8px!important; }
+    .fc .fc-button-group .fc-button:last-child  { border-radius:0 8px 8px 0!important; }
+    .fc .fc-col-header-cell { background:#f8f2ff; font-weight:700; font-size:.78rem; text-transform:uppercase; letter-spacing:.06em; color:#6722a8; padding:.45rem 0; }
+    .fc .fc-col-header-cell a { color:inherit!important; text-decoration:none; }
+    .fc .fc-timegrid-slot-label { font-size:.73rem; color:#9033d6; font-weight:600; }
+    .fc .fc-event { border-radius:8px!important; border:none!important; box-shadow:0 2px 6px rgba(0,0,0,.12); font-size:.78rem; font-weight:600; padding:2px 6px; cursor:pointer; transition:transform .1s,box-shadow .1s; }
+    .fc .fc-event:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,.18); }
+    .fc .fc-day-today .fc-daygrid-day-number { background:#9033d6; color:#fff; border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; margin:4px; }
+    .fc-nowIndicator-line { border-color:#9033d6!important; }
+
+    /* ── Table ── */
+    .pac-table thead th { background:#0d0a17!important; color:#fff!important; border:none!important; }
+
+    /* ── Legend pills ── */
+    .legend-bar { background:#faf6ff; border:1px solid #e5d4f8; border-radius:10px; padding:.65rem 1rem; }
+    .lpill { display:inline-flex; align-items:center; gap:.35rem; padding:.25rem .7rem; border-radius:999px; font-size:.8rem; font-weight:600; }
+    .lpill-green  { background:#e8f5e9; color:#1b6b35; border:1.5px solid #10b981; }
+    .lpill-yellow { background:#fff8e1; color:#92640a; border:1.5px solid #f59e0b; }
+    .lpill-red    { background:#fde8e8; color:#991b1b; border:1.5px solid #ef4444; }
+  </style>
+</head>
+<body>
+  <nav class="pac-nav navbar navbar-dark shadow-sm mb-4">
+    <div class="container d-flex justify-content-between align-items-center">
+      <span class="navbar-brand fw-bold">
+        <i class="fas fa-notes-medical me-2" style="color:#9033d6"></i>FizjoApp
+        <span class="fw-light text-white-50 ms-1">/ Panel pacjenta</span>
+      </span>
+      <div class="d-flex align-items-center gap-3">
+        <span class="text-white-50 small d-none d-md-inline">{{ user.get_full_name|default:user.username }}</span>
+        <a href="{% url 'wyloguj' %}" class="btn btn-outline-danger btn-sm"><i class="fas fa-sign-out-alt"></i> Wyloguj</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container pb-5" style="max-width:1020px">
+
+    <!-- Welcome -->
+    <h2 class="fw-bold mb-1">Witaj, <span style="color:#9033d6">{{ user.get_first_name|default:user.username }}</span>!</h2>
+    <p class="text-muted mb-4">Twój panel zdrowia — ćwiczenia, wizyty i fizjoterapeuci w jednym miejscu.</p>
+
+    <!-- Stat cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <a href="{% url 'plany_treningowe' %}" class="stat-card card h-100">
+          <div class="card-body p-4">
+            <div class="d-flex align-items-center gap-3 mb-2">
+              <i class="fas fa-dumbbell stat-icon"></i>
+              <h4 class="mb-0 fw-bold">
+                {% if plany_count == 1 %}{{ plany_count }} plan
+                {% elif plany_count >= 2 and plany_count <= 4 %}{{ plany_count }} plany
+                {% else %}{{ plany_count }} planów{% endif %}
+              </h4>
+            </div>
+            <p class="text-muted small mb-0">Aktywnych planów treningowych.</p>
+          </div>
+        </a>
+      </div>
+      <div class="col-md-4">
+        <div class="stat-card card h-100">
+          <div class="card-body p-4">
+            <div class="d-flex align-items-center gap-3 mb-2">
+              <i class="fas fa-calendar-check stat-icon"></i>
+              <h4 class="mb-0 fw-bold">
+                {% if nadchodzace_wizyty == 1 %}{{ nadchodzace_wizyty }} wizyta
+                {% elif nadchodzace_wizyty >= 2 and nadchodzace_wizyty <= 4 %}{{ nadchodzace_wizyty }} wizyty
+                {% else %}{{ nadchodzace_wizyty }} wizyt{% endif %}
+              </h4>
+            </div>
+            <p class="text-muted small mb-0">Zatwierdzonych, nadchodzących wizyt.</p>
+          </div>
         </div>
       </div>
-    </nav>
-
-    <div style="margin-bottom: 30px; padding: 20px; border: 1px solid #ccc">
-      <h3>Znajdź lekarza i umów wizytę</h3>
-
-      <form method="GET" action="{% url 'wyszukiwarka_lekarzy' %}">
-        <input
-          type="text"
-          name="szukaj"
-          placeholder="Wpisz nazwisko lekarza..."
-          style="padding: 8px; width: 250px"
-        />
-        <button type="submit" style="padding: 8px 15px">Szukaj</button>
-      </form>
+      <div class="col-md-4">
+        <a href="{% url 'wyszukiwarka_lekarzy' %}" class="stat-card card h-100">
+          <div class="card-body p-4">
+            <div class="d-flex align-items-center gap-3 mb-2">
+              <i class="fas fa-user-md stat-icon"></i>
+              <h4 class="mb-0 fw-bold">
+                {% with n=moi_lekarze|length %}
+                {% if n == 1 %}{{ n }} fizjoterapeuta
+                {% elif n >= 2 and n <= 4 %}{{ n }} fizjoterapeutów
+                {% else %}{{ n }} fizjoterapeutów{% endif %}
+                {% endwith %}
+              </h4>
+            </div>
+            <p class="text-muted small mb-0">Połączonych z Twoim profilem.</p>
+          </div>
+        </a>
+      </div>
     </div>
 
-    <div class="container mt-4">
-      <div class="alert alert-info shadow-sm mb-4">
-        <h1>
-          <i class="fas fa-heartbeat text-danger"></i> Witaj w swoim panelu
-          zdrowia, {{ user.username }}!
-        </h1>
-        <p class="mb-0">
-          Poniżej znajdziesz swoje indywidualne plany ćwiczeniowe ułożone przez
-          specjalistów.
-        </p>
-      </div>
-
-      <!-- ── Patient identifier code ─────────────────────────────── -->
-      <div class="card shadow-sm mb-4" style="border-top: 4px solid #cb34d9">
-        <div class="card-body">
-          <h5 class="mb-1">
-            <i class="fas fa-id-badge" style="color: #cb34d9"></i> Twój kod
-            pacjenta
-          </h5>
-          <p class="text-muted small mb-2">
-            Podaj ten kod swojemu fizjoterapeucie — użyje go, żeby Cię dodać do
-            swojego gabinetu.
-          </p>
-          <div class="d-flex align-items-center gap-2">
-            <code
-              id="kodPacjenta"
-              class="fs-4 px-3 py-2 bg-light border rounded"
-              style="letter-spacing: 0.15em"
-            >
-              {{ request.user.pacjent.kod_pacjenta|default:"—" }}
-            </code>
-            <button
-              class="btn btn-outline-secondary btn-sm"
-              onclick="kopiujKod()"
-              title="Skopiuj kod"
-            >
-              <i class="fas fa-copy"></i> Kopiuj
+    <!-- Patient code + invitations row -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-{% if zaproszenia %}6{% else %}12{% endif %}">
+        <div class="main-card p-4 h-100">
+          <h5 class="fw-bold mb-1"><i class="fas fa-id-badge me-2" style="color:#9033d6"></i>Twój kod pacjenta</h5>
+          <p class="text-muted small mb-3">Podaj go fizjoterapeucie — użyje go, żeby Cię dodać do swojego gabinetu.</p>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="code-box" id="kodPacjenta">{{ request.user.pacjent.kod_pacjenta|default:"—" }}</span>
+            <button class="btn btn-pac-outline btn-sm" onclick="kopiujKod()">
+              <i class="fas fa-copy me-1"></i> Kopiuj
             </button>
-            <span
-              id="kopiowanoInfo"
-              class="text-success small"
-              style="display: none"
-            >
+            <span id="kopiowanoInfo" class="text-success small" style="display:none">
               <i class="fas fa-check"></i> Skopiowano!
             </span>
           </div>
         </div>
       </div>
 
-      <!-- ── Pending physio invitations ────────────────────────── -->
       {% if zaproszenia %}
-      <div class="card shadow-sm mb-4 border-warning">
-        <div class="card-header bg-warning bg-opacity-10 border-warning">
-          <h5 class="mb-0 text-warning-emphasis">
-            <i class="fas fa-envelope-open-text"></i>
-            Zaproszenia od fizjoterapeutów ({{ zaproszenia|length }})
-          </h5>
+      <div class="col-md-6">
+        <div class="card border-warning shadow-sm h-100" style="border-top:4px solid #f59e0b!important;">
+          <div class="card-body p-4">
+            <h5 class="fw-bold mb-3 text-warning-emphasis">
+              <i class="fas fa-envelope-open-text me-2"></i>
+              Zaproszenia ({{ zaproszenia|length }})
+            </h5>
+            {% for z in zaproszenia %}
+            <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+              <div>
+                <strong>{{ z.fizjoterapeuta.tytul }} {{ z.fizjoterapeuta.imie }} {{ z.fizjoterapeuta.nazwisko }}</strong>
+                <div class="text-muted small">{{ z.fizjoterapeuta.specka }}</div>
+              </div>
+              <div class="d-flex gap-1">
+                <a href="{% url 'zaakceptuj_zaproszenie' z.id %}" class="btn btn-success btn-sm"><i class="fas fa-check"></i></a>
+                <a href="{% url 'odrzuc_zaproszenie' z.id %}" class="btn btn-outline-danger btn-sm"><i class="fas fa-times"></i></a>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
         </div>
-        <ul class="list-group list-group-flush">
-          {% for zaproszenie in zaproszenia %}
-          <li
-            class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2"
-          >
-            <div>
-              <strong>
-                {{ zaproszenie.fizjoterapeuta.tytul }} 
-                {{zaproszenie.fizjoterapeuta.imie }}
-                {{zaproszenie.fizjoterapeuta.nazwisko}}
-              </strong>
-              <span class="text-muted ms-2 small"
-                >{{ zaproszenie.fizjoterapeuta.specka }}</span
-              >
-            </div>
-            <div class="d-flex gap-2">
-              <a
-                href="{% url 'zaakceptuj_zaproszenie' zaproszenie.id %}"
-                class="btn btn-success btn-sm"
-              >
-                <i class="fas fa-check"></i> Akceptuj
-              </a>
-              <a
-                href="{% url 'odrzuc_zaproszenie' zaproszenie.id %}"
-                class="btn btn-outline-danger btn-sm"
-              >
-                <i class="fas fa-times"></i> Odrzuć
-              </a>
-            </div>
-          </li>
-          {% endfor %}
-        </ul>
       </div>
       {% endif %}
+    </div>
 
-      <div class="Sektor mb-5">
-        <h2>
-          <i class="fas fa-clipboard-check"></i> Twoje programy do wykonania
-        </h2>
+    <!-- Calendar -->
+    <div class="main-card p-4 mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div>
+          <h4 class="fw-bold mb-0">Kalendarz wizyt</h4>
+          <p class="text-muted small mb-0">Wybierz fizjoterapeutę, aby zobaczyć jego dostępność i zaproponować wizytę.</p>
+        </div>
+        <select id="doctorSelect" class="form-select" style="max-width:280px;">
+          <option value="">Moje zaplanowane wizyty</option>
+          {% for lekarz in moi_lekarze %}
+          <option value="{{ lekarz.user.id }}">{{ lekarz.tytul }} {{ lekarz.imie }} {{ lekarz.nazwisko }}</option>
+          {% endfor %}
+        </select>
+      </div>
 
-        <table class="table table-striped table-hover border mt-3">
-          <thead class="table-primary">
+      <div class="legend-bar mb-3 d-flex flex-wrap gap-2" id="calLegend" style="display:none!important">
+        <!-- filled by JS based on mode -->
+      </div>
+      <div id="legendMoje" class="legend-bar mb-3 d-flex flex-wrap gap-2">
+        <span class="lpill lpill-green">✅ Zatwierdzona</span>
+        <span class="lpill lpill-yellow">⏳ Oczekuje</span>
+      </div>
+      <div id="legendFizjo" class="legend-bar mb-3 d-flex flex-wrap gap-2" style="display:none">
+        <span class="lpill lpill-red">🔒 Termin zajęty</span>
+        <span class="lpill lpill-yellow">⏳ Twoja propozycja</span>
+        <span class="lpill" style="background:#e8f0fe;color:#1a56db;border:1.5px solid #1a56db">Kliknij wolny termin, aby zaproponować wizytę</span>
+      </div>
+
+      <div id="calendar"></div>
+    </div>
+
+    <!-- Programs table -->
+    <div class="main-card p-4 mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="fw-bold mb-0"><i class="fas fa-clipboard-check me-2" style="color:#9033d6"></i>Twoje programy</h4>
+        <a href="{% url 'plany_treningowe' %}" class="btn btn-pac btn-sm">
+          <i class="fas fa-dumbbell me-1"></i> Wszystkie plany
+        </a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="pac-table">
             <tr>
-              <th>Nazwa programu</th>
-              <th>Opis / Instrukcje</th>
+              <th class="py-3 ps-3">Nazwa programu</th>
+              <th>Opis</th>
               <th>Data wystawienia</th>
             </tr>
           </thead>
           <tbody>
             {% for program in programy %}
             <tr>
-              <td class="fw-bold">{{ program.nazwa }}</td>
-              <td>{{ program.opis }}</td>
-              <td>{{ program.data|date:"d.m.Y" }}</td>
+              <td class="ps-3 fw-semibold">{{ program.nazwa }}</td>
+              <td class="text-muted">{{ program.opis }}</td>
+              <td class="text-muted small">{{ program.data|date:"d.m.Y" }}</td>
             </tr>
             {% empty %}
             <tr>
               <td colspan="3" class="text-center py-4 text-muted">
-                <i class="fas fa-mug-hot fa-2x mb-2"></i><br />
-                Nie masz aktualnie przypisanych żadnych programów ćwiczeń.<br />
-                Odpoczywaj!
+                <i class="fas fa-mug-hot fa-2x mb-2 d-block" style="opacity:.4"></i>
+                Nie masz aktualnie przypisanych żadnych programów.<br>Odpoczywaj!
               </td>
             </tr>
             {% endfor %}
@@ -166,84 +248,78 @@
         </table>
       </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 
-    <div style="max-width: 900px; margin: 40px auto 15px auto">
-      <label for="doctorSelect" class="form-label fw-bold">
-        <i class="fas fa-filter text-primary"></i> Wyświetl kalendarz:
-      </label>
-      <select id="doctorSelect" class="form-select border-primary shadow-sm">
-        <option value="">Moje zaplanowane wizyty</option>
-        {% for lekarz in moi_lekarze %}
-        <option value="{{ lekarz.user.id }}">
-          Dostępność: {{ lekarz.tytul }} {{ lekarz.imie }} {{ lekarz.nazwisko }}
-        </option>
-        {% endfor %}
-      </select>
-    </div>
+  </div><!-- /container -->
 
-    <div id="calendar" style="max-width: 900px; margin: 0 auto 40px auto"></div>
-
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        var calendarEl = document.getElementById("calendar");
-        var doctorSelect = document.getElementById("doctorSelect");
-
-        var calendar = new FullCalendar.Calendar(calendarEl, {
-          initialView: "timeGridWeek",
-          slotMinTime: "08:00:00",
-          slotMaxTime: "16:00:00",
-          allDaySlot: false,
-          selectable: false,
-          height: "auto", 
-          expandRows: false, 
-          dayHeaderFormat: { weekday: "long" },
-          locale: "pl",
-          events: "/api/get-my-appointments/", // Na starcie ładujemy wszystkie wizyty pacjenta
-        });
-        
-        calendar.render();
-
-        // NASŁUCHIWANIE ZMIANY W DROPDOWNIE
-        doctorSelect.addEventListener("change", function() {
-          var selectedId = this.value;
-          
-          // Czyścimy obecne źródła danych z kalendarza
-          calendar.removeAllEventSources();
-          
-          if (selectedId) {
-            // Jeśli pacjent wybrał lekarza -> filtrujemy JEGO WŁASNE wizyty po tym lekarzu
-            calendar.addEventSource("/api/get-my-appointments/?lekarz_id=" + selectedId);
-          } else {
-            // Jeśli wrócił do opcji domyślnej -> ponownie ładujemy wszystkie jego wizyty
-            calendar.addEventSource("/api/get-my-appointments/");
-          }
-        });
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+  <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+  <script>
+    function kopiujKod() {
+      const kod = document.getElementById('kodPacjenta').textContent.trim();
+      navigator.clipboard.writeText(kod).then(() => {
+        const info = document.getElementById('kopiowanoInfo');
+        info.style.display = 'inline';
+        setTimeout(() => { info.style.display = 'none'; }, 2000);
       });
-    </script>
-    <div class="card p-4 shadow-sm mb-4 text-center">
-      <h3>Twoje Plany Treningowe</h3>
-      <p class="text-muted">
-        Przejdź tutaj, aby sprawdzić swoje ćwiczenia i ocenić ból po treningu.
-      </p>
-      <a
-        href="{% url 'plany_treningowe' %}"
-        class="btn btn-primary btn-lg mt-2"
-      >
-        🏋️ Zobacz swoje plany
-      </a>
-    </div>
-    <script>
-      function kopiujKod() {
-        const kod = document.getElementById("kodPacjenta").textContent.trim();
-        navigator.clipboard.writeText(kod).then(function () {
-          const info = document.getElementById("kopiowanoInfo");
-          info.style.display = "inline";
-          setTimeout(() => {
-            info.style.display = "none";
-          }, 2000);
-        });
-      }
-    </script>
-  </body>
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const calEl = document.getElementById('calendar');
+      const select = document.getElementById('doctorSelect');
+      const legendMoje  = document.getElementById('legendMoje');
+      const legendFizjo = document.getElementById('legendFizjo');
+
+      const calendar = new FullCalendar.Calendar(calEl, {
+        initialView: 'timeGridWeek',
+        slotMinTime: '08:00:00',
+        slotMaxTime: '18:00:00',
+        allDaySlot: false,
+        selectable: false,
+        height: 'auto',
+        nowIndicator: true,
+        locale: 'pl',
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,timeGridDay',
+        },
+        buttonText: { today:'Dziś', month:'Miesiąc', week:'Tydzień', day:'Dzień' },
+        dayHeaderFormat: { weekday: 'long' },
+        events: '/api/get-my-appointments/',
+
+        // When in physio mode and patient clicks a free slot → booking form
+        select: function (info) {
+          const lekarzId = select.value;
+          if (!lekarzId) return;
+          if (confirm('Zaproponować wizytę w tym terminie?')) {
+            const start = encodeURIComponent(info.startStr);
+            const end   = encodeURIComponent(info.endStr);
+            window.location.href = '/rezerwacja/' + lekarzId + '/?start=' + start + '&end=' + end;
+          }
+        },
+      });
+
+      calendar.render();
+
+      select.addEventListener('change', function () {
+        const id = this.value;
+        calendar.removeAllEventSources();
+
+        if (id) {
+          // Show physio's calendar — occupied slots + patient's own pending
+          calendar.setOption('selectable', true);
+          calendar.addEventSource('/api/get-appointments/' + id + '/');
+          legendMoje.style.display  = 'none';
+          legendFizjo.style.display = 'flex';
+        } else {
+          // Show only patient's own appointments
+          calendar.setOption('selectable', false);
+          calendar.addEventSource('/api/get-my-appointments/');
+          legendMoje.style.display  = 'flex';
+          legendFizjo.style.display = 'none';
+        }
+      });
+    });
+  </script>
+</body>
 </html>
