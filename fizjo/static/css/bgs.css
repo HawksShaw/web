@@ -11,13 +11,13 @@ body {
 }
 
 .btn-login {
-    background-color: #9033d6; /* Wpisz tu swój HEX */
+    background-color: #9033d6;
     border-color: #632294;
     color: white;
 }
 
 .btn-login:hover {
-    background-color: #632294; /* Wpisz tu swój HEX */
+    background-color: #632294;
     border-color: #632294;
     color: white;
 }

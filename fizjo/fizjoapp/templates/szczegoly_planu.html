@@ -16,7 +16,8 @@
     .divider{border-left:3px solid #e5d4f8;}
     input[type=range]{accent-color:#9033d6;}
     .range-num{font-size:1.4rem;font-weight:700;color:#9033d6;min-width:2.5rem;text-align:center;}
-    .history-pill{background:#f0e8fc;color:#6722a8;border-radius:6px;font-size:.8rem;padding:.2rem .6rem;}
+    .history-pill{background:#f0e8fc;color:#6722a8;border-radius:6px;font-size:.8rem;padding:.25rem .65rem;display:inline-block;}
+    .session-bar .progress-bar{background:#9033d6;}
   </style>
 </head>
 <body>
@@ -28,6 +29,23 @@
   </nav>
 
   <div class="container pb-5" style="max-width:860px">
+
+    <div class="card border-0 shadow-sm mb-4 p-3" style="background:#f0e8fc;">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+          <span class="fw-bold" style="color:#6722a8">Postęp w tym tygodniu:</span>
+          <span class="ms-2 fw-bold fs-5" style="color:#9033d6">{{ sesje_w_tygodniu }} / {{ plan.sesje_tygodniowo }} sesji</span>
+        </div>
+        <span class="text-muted small">Plan trwa {{ plan.czas_trwania_tygodnie }} tyg. · {{ plan.sesje_tygodniowo }} sesje/tydzień</span>
+      </div>
+      <div class="progress mt-2 session-bar" style="height:8px;border-radius:999px;">
+        {% if plan.sesje_tygodniowo > 0 %}
+          {% widthratio sesje_w_tygodniu plan.sesje_tygodniowo 100 as pct %}
+          <div class="progress-bar" role="progressbar" style="width:{{ pct }}%"></div>
+        {% endif %}
+      </div>
+    </div>
+
     <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
       <div>
         <h3 class="fw-bold mb-0">{{ plan.nazwa }}</h3>
@@ -42,7 +60,7 @@
       {% csrf_token %}
       {{ formset.management_form }}
 
-      {% for cwiczenie, form in zestaw %}
+      {% for cwiczenie, form, ostatnia in zestaw %}
       <div class="exercise-card card mb-3 overflow-hidden">
         <div class="card-top"></div>
         <div class="card-body p-4">
@@ -53,12 +71,12 @@
                 <i class="fas fa-layer-group me-1"></i>{{ cwiczenie.serie }} serie &nbsp;·&nbsp;
                 <i class="fas fa-redo me-1"></i>{{ cwiczenie.powtórzenia }} powt.
               </p>
-              {% if ostatnie_oceny %}
-              {% if cwiczenie.id in ostatnie_oceny %}
-              {% with o=ostatnie_oceny|default:None %}
-              <span class="history-pill"><i class="fas fa-history me-1"></i>Poprzedni feedback zapisany</span>
-              {% endwith %}
-              {% endif %}
+              {% if ostatnia %}
+              <span class="history-pill">
+                <i class="fas fa-history me-1"></i>
+                Ostatnio: {{ ostatnia.skala_bolu }}/10
+                <span class="text-muted">({{ ostatnia.data_oceny|date:"d.m.Y" }})</span>
+              </span>
               {% endif %}
             </div>
             <div class="col-md-7 divider ps-md-4">

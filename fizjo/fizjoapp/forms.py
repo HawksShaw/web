@@ -32,7 +32,6 @@ class RejestrForm(UserCreationForm):
         ('fizjo', 'Jestem Fizjoterapeutą'),
     ]
     
-    # Dla przycisków Radio używamy innej klasy Bootstrapa: 'form-check-input'
     rola = forms.ChoiceField(
         choices=role_wybor,
         widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
@@ -57,7 +56,7 @@ class FizjoForm(forms.ModelForm):
 class PacjentForm(forms.ModelForm):
     class Meta:
         model = Pacjent
-        exclude = ['kod_pacjenta']  # auto-generated on registration, never user-editable
+        exclude = ['kod_pacjenta']
 
 class ProgramForm(forms.ModelForm):
     class Meta:
@@ -79,7 +78,6 @@ class OcenaCwiczeniaForm(forms.ModelForm):
         model = OcenaCwiczenia
         fields = ['skala_bolu', 'uwagi']
         widgets = {
-            # Zmieniamy zwykłe pole tekstowe na suwak od 0 do 10
             'skala_bolu': forms.NumberInput(attrs={
                 'type': 'range', 'min': '0', 'max': '10', 'class': 'form-range'
             }),
@@ -102,18 +100,15 @@ class PlanTreningowyForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        # Wyciągamy przekazanego fizjoterapeutę (jeśli istnieje)
         fizjo = kwargs.pop('fizjo', None)
         super().__init__(*args, **kwargs)
         
         if fizjo:
-            # Filtrujemy queryset pacjentów korzystając z relacji (related_name='relacje_z_fizjo')
             self.fields['pacjent'].queryset = Pacjent.objects.filter(
                 relacje_z_fizjo__fizjoterapeuta=fizjo,
                 relacje_z_fizjo__status='zaakceptowany'
             )
 
-# Tworzymy powiązane formularze dla ćwiczeń (extra=3 oznacza, że domyślnie pojawią się 3 puste wiersze na ćwiczenia)
 CwiczenieFormSet = inlineformset_factory(
     PlanTreningowy, 
     Cwiczenie, 

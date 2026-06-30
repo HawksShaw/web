@@ -55,7 +55,7 @@ def sesje_w_biezacym_tygodniu(plan, pacjent=None):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# DASHBOARDS
+# DASHBOARDY
 # ─────────────────────────────────────────────────────────────────────────────
 
 @login_required
@@ -127,7 +127,7 @@ def dashboard_pacjent(request):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# GENERIC ADD
+# DODAWANIE / EDYCJA ELEMENTÓW
 # ─────────────────────────────────────────────────────────────────────────────
 
 def dodaj_element(request, form_class, szablon_tytul):
@@ -200,7 +200,7 @@ class CustomLoginView(LoginView):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# DOCTOR SEARCH
+# SZUKANIE FIZJO
 # ─────────────────────────────────────────────────────────────────────────────
 
 @login_required
@@ -224,7 +224,7 @@ def profil_lekarza(request, lekarz_id):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# CALENDAR – PATIENT APIS
+# KALENDARZ NA PACJENTA
 # ─────────────────────────────────────────────────────────────────────────────
 
 @login_required
@@ -237,7 +237,7 @@ def get_wizyty_pacjent(request, lekarz_id):
     """
     events = []
 
-    # Slots unavailable to everyone
+    # Pokaż sloty niedostępne
     for w in Wizyta.objects.filter(lekarz_id=lekarz_id, status__in=['zaakceptowana', 'zablokowana']):
         events.append({
             'title': 'Termin zajęty',
@@ -247,7 +247,7 @@ def get_wizyty_pacjent(request, lekarz_id):
         })
 
     if hasattr(request.user, 'pacjent'):
-        # Patient's own pending
+        # Pokaż oczekujące od pacjenta
         for w in Wizyta.objects.filter(lekarz_id=lekarz_id, status='oczekujaca', pacjent=request.user.pacjent):
             events.append({
                 'title': '⏳ Oczekuje na potwierdzenie',
@@ -255,10 +255,10 @@ def get_wizyty_pacjent(request, lekarz_id):
                 'end': w.data_zakonczenia.isoformat(),
                 'color': '#ffc107',
             })
-        # Patient's own rejected — show as grey/blocked so they can't re-book
+        # Pokaż odrzucone od pacjenta
         for w in Wizyta.objects.filter(lekarz_id=lekarz_id, status='odrzucona', pacjent=request.user.pacjent):
             events.append({
-                'title': '❌ Twoja propozycja odrzucona',
+                'title': '❌ Odrzucona',
                 'start': w.data_rozpoczecia.isoformat(),
                 'end': w.data_zakonczenia.isoformat(),
                 'color': '#6c757d',
@@ -323,7 +323,7 @@ def get_moje_wizyty(request):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# CALENDAR – PHYSIO APIS
+# KALENDARZ NA FIZJO
 # ─────────────────────────────────────────────────────────────────────────────
 
 @login_required
@@ -337,7 +337,7 @@ def get_wizyty(request):
             color, title = '#198754', f'✅ {w.pacjent_nazwa}'
         elif w.status == 'odrzucona':
             color, title = '#6c757d', f'❌ {w.pacjent_nazwa}'
-        else:  # zablokowana
+        else:
             color, title = '#dc3545', 'Zablokowane'
         events.append({
             'id': w.id, 'title': title,
@@ -392,7 +392,7 @@ def usun_wizyte(request, wizyta_id):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PHYSIO PANEL PAGES
+# PANELE OD FIZJO
 # ─────────────────────────────────────────────────────────────────────────────
 
 @login_required
@@ -475,7 +475,7 @@ def log_fizjo(request):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PATIENT CODE SYSTEM
+# KODY PACJENTA
 # ─────────────────────────────────────────────────────────────────────────────
 
 @login_required
@@ -534,7 +534,7 @@ def odrzuc_zaproszenie(request, relacja_id):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# TRAINING PLANS – PHYSIO
+# PROGRAMY OD FIZJO
 # ─────────────────────────────────────────────────────────────────────────────
 
 @login_required
@@ -659,7 +659,7 @@ def importuj_plan_csv(request):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# TRAINING PLANS – PATIENT
+# PROGRAMY OD PACJENTA
 # ─────────────────────────────────────────────────────────────────────────────
 
 @login_required
@@ -668,7 +668,6 @@ def plany_treningowe(request):
         return render(request, '403.html', status=403)
     pacjent = request.user.pacjent
     plany = PlanTreningowy.objects.filter(pacjent=pacjent).order_by('-data_utworzenia')
-    # Attach this week's session count to each plan
     plany_z_sesjami = [(p, sesje_w_biezacym_tygodniu(p, pacjent)) for p in plany]
     return render(request, 'plany_treningowe.html', {'plany_z_sesjami': plany_z_sesjami})
 
@@ -716,3 +715,48 @@ def szczegoly_planu(request, plan_id):
 @login_required
 def strona_sukcesu(request):
     return render(request, 'sukces.html')
+
+
+@login_required
+def profil_pacjenta(request, pacjent_id):
+    """Physio views a patient's pain history chart across all plans."""
+    if not hasattr(request.user, 'fizjoterapeuta'):
+        return render(request, '403.html', status=403)
+    fizjo = request.user.fizjoterapeuta
+    pacjent = get_object_or_404(Pacjent, id=pacjent_id)
+    if not FizjoPacjent.objects.filter(
+        fizjoterapeuta=fizjo, pacjent=pacjent, status='zaakceptowany'
+    ).exists():
+        return render(request, '403.html', status=403)
+
+    plany = PlanTreningowy.objects.filter(pacjent=pacjent, fizjoterapeuta=fizjo)
+    plany_z_sesjami = [(p, sesje_w_biezacym_tygodniu(p)) for p in plany]
+    cwiczenia_nazwy = list(
+        Cwiczenie.objects.filter(plan__in=plany)
+        .values_list('nazwa_cwiczenia', flat=True).distinct()
+    )
+    return render(request, 'profil_pacjenta.html', {
+        'pacjent': pacjent,
+        'plany_z_sesjami': plany_z_sesjami,
+        'cwiczenia_nazwy': cwiczenia_nazwy,
+    })
+
+
+@login_required
+def wykres_bolu(request, pacjent_id):
+    """JSON endpoint: pain ratings for a named exercise for this patient."""
+    if not hasattr(request.user, 'fizjoterapeuta'):
+        return JsonResponse({'error': 'Brak uprawnień'}, status=403)
+    pacjent = get_object_or_404(Pacjent, id=pacjent_id)
+    nazwa = request.GET.get('nazwa', '')
+    oceny = (
+        OcenaCwiczenia.objects
+        .filter(cwiczenie__nazwa_cwiczenia=nazwa, pacjent=pacjent)
+        .order_by('data_oceny')
+        .select_related('cwiczenie__plan')
+    )
+    return JsonResponse({
+        'labels': [o.data_oceny.strftime('%d.%m.%Y') for o in oceny],
+        'data':   [o.skala_bolu for o in oceny],
+        'uwagi':  [f"{o.cwiczenie.plan.nazwa}: {o.uwagi or '—'}" for o in oceny],
+    })

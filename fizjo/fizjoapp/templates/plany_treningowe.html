@@ -21,22 +21,49 @@
     <p class="text-muted mb-4">Otwórz plan, aby wykonać ćwiczenia i przesłać feedback fizjoterapeucie.</p>
 
     <div class="row g-3">
-      {% for plan in plany %}
+      {% for plan, sesje in plany_z_sesjami %}
       <div class="col-md-4">
         <div class="plan-card card h-100">
           <div class="card-top"></div>
-          <div class="card-body p-4">
+          <div class="card-body p-4 d-flex flex-column">
             <h5 class="fw-bold mb-1">{{ plan.nazwa }}</h5>
             <p class="mb-2">
               <span class="fizjo-badge"><i class="fas fa-user-md me-1"></i>{{ plan.fizjoterapeuta }}</span>
             </p>
-            <p class="text-muted small mb-3"><i class="fas fa-calendar-alt me-1"></i> {{ plan.data_utworzenia|date:"d.m.Y" }}</p>
-            <a href="{% url 'szczegoly_planu' plan.id %}" class="btn btn-pac w-100 mb-2">
-              <i class="fas fa-dumbbell me-1"></i> Otwórz i oceń ból
-            </a>
-            <a href="{% url 'eksportuj_plan_csv' plan.id %}" class="btn btn-outline-secondary w-100 btn-sm">
-              <i class="fas fa-download me-1"></i> Pobierz CSV
-            </a>
+            <p class="text-muted small mb-2"><i class="fas fa-calendar-alt me-1"></i> {{ plan.data_utworzenia|date:"d.m.Y" }}</p>
+
+<!-- 
+_____________________________________________________________
+              Progress Bar na ten tydzień
+_____________________________________________________________
+-->
+            <div class="mb-3">
+              <div class="d-flex justify-content-between small fw-semibold mb-1">
+                <span>Sesje w tym tygodniu</span>
+                <span style="color:#9033d6">{{ sesje }} / {{ plan.sesje_tygodniowo }}</span>
+              </div>
+              <div class="progress" style="height:8px;border-radius:999px;">
+                {% if plan.sesje_tygodniowo > 0 %}
+                  {% widthratio sesje plan.sesje_tygodniowo 100 as pct %}
+                  <div class="progress-bar" role="progressbar"
+                       style="width:{{ pct }}%;background:#9033d6;"
+                       aria-valuenow="{{ sesje }}" aria-valuemin="0" aria-valuemax="{{ plan.sesje_tygodniowo }}">
+                  </div>
+                {% endif %}
+              </div>
+              <p class="text-muted" style="font-size:.75rem;margin-top:.3rem">
+                Plan trwa {{ plan.czas_trwania_tygodnie }} {% if plan.czas_trwania_tygodnie == 1 %}tydzień{% elif plan.czas_trwania_tygodnie <= 4 %}tygodnie{% else %}tygodni{% endif %}
+              </p>
+            </div>
+
+            <div class="mt-auto">
+              <a href="{% url 'szczegoly_planu' plan.id %}" class="btn btn-pac w-100 mb-2">
+                <i class="fas fa-dumbbell me-1"></i> Otwórz i oceń ból
+              </a>
+              <a href="{% url 'eksportuj_plan_csv' plan.id %}" class="btn btn-outline-secondary w-100 btn-sm">
+                <i class="fas fa-download me-1"></i> Pobierz CSV
+              </a>
+            </div>
           </div>
         </div>
       </div>

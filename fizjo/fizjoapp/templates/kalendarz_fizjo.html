@@ -10,8 +10,6 @@
   <link rel="stylesheet" href="{% static 'css/calendar.css' %}"/>
 </head>
 <body>
-
-  <!-- Navbar -->
   <nav class="fizjo-nav shadow-sm mb-4">
     <div class="container d-flex justify-content-between align-items-center">
       <span class="brand-text">
@@ -24,27 +22,24 @@
   </nav>
 
   <div class="container pb-5" style="max-width:1020px">
-
-    <!-- Calendar card -->
     <div class="calendar-card">
       <div class="calendar-inner">
-
-        <!-- Legend -->
         <div class="legend-bar">
           <span class="legend-pill pill-pending">⏳ Oczekująca</span>
           <span class="legend-pill pill-accepted">✅ Zaakceptowana</span>
           <span class="legend-pill pill-rejected">❌ Odrzucona</span>
           <span class="legend-pill pill-blocked">🔒 Zablokowana przez Ciebie</span>
         </div>
-
-        <!-- FullCalendar mount point -->
         <div id="calendar"></div>
-
       </div>
     </div>
   </div>
 
-  <!-- Appointment detail modal -->
+ <!-- 
+_____________________________________________________________________
+Modale do kalendarza - szablony bootstrapa do popup'ów po kliknięciu
+_____________________________________________________________________
+-->
   <div class="modal fade" id="wizytaModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
@@ -61,7 +56,11 @@
       </div>
     </div>
   </div>
-
+<!-- 
+_____________________________________________________________
+              Szablon FullCalendar z jsdelivr
+_____________________________________________________________
+-->
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
   <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
   <script>
@@ -89,7 +88,7 @@
         locale: 'pl',
         nowIndicator: true,
 
-        // View switcher buttons
+        // Pokaż przyciski
         headerToolbar: {
           left: 'prev,next today',
           center: 'title',
@@ -106,7 +105,7 @@
         dayHeaderFormat: { weekday: 'long' },
         events: '/api/get-appointments/',
 
-        // Click event → show modal
+        // Pokaż modale po kliknięciu
         eventClick: function (info) {
           const props = info.event.extendedProps;
           document.getElementById('modalPacjent').textContent = props.pacjent_nazwa || '—';
@@ -144,6 +143,26 @@
 
             footer.appendChild(btnOk);
             footer.appendChild(btnNo);
+          } else if (props.status === 'odrzucona') {
+            // Fizjo może usunąć rekord na kalendarzu jeśli się pomyli / będzie mógł zwolnić dany termin
+            const btnUsun = document.createElement('button');
+            btnUsun.className = 'btn btn-outline-danger me-2';
+            btnUsun.innerHTML = '<i class="fas fa-trash me-1"></i> Usuń i zwolnij termin';
+            btnUsun.onclick = () => {
+              if (confirm('Usunąć tę odrzuconą rezerwację i zwolnić termin?')) {
+                fetch('/api/usun-wizyte/' + info.event.id + '/', {
+                  headers: { 'X-CSRFToken': getCsrf() }
+                })
+                  .then(r => r.json())
+                  .then(() => { modal.hide(); calendar.refetchEvents(); });
+              }
+            };
+            const closeBtn2 = document.createElement('button');
+            closeBtn2.className = 'btn btn-secondary';
+            closeBtn2.textContent = 'Zamknij';
+            closeBtn2.setAttribute('data-bs-dismiss', 'modal');
+            footer.appendChild(btnUsun);
+            footer.appendChild(closeBtn2);
           } else {
             const close = document.createElement('button');
             close.className = 'btn btn-secondary';
@@ -155,7 +174,7 @@
           modal.show();
         },
 
-        // Select empty slot → block it
+        // Fizjo może zablokować dowolny termin na swoim kalendarzu - nie potrzebuje do tego prośby pacjenta ani nic
         select: function (info) {
           if (confirm('Zablokować ten termin w kalendarzu?')) {
             fetch('/api/add-appointment/', {

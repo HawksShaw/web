@@ -1,10 +1,8 @@
-    /* ── Page foundation ───────────────────────────────────────── */
     body {
       background: #f5edf8;
       font-family: 'Segoe UI', system-ui, sans-serif;
     }
 
-    /* ── Navbar ────────────────────────────────────────────────── */
     .fizjo-nav {
       background: #202020;
       border-bottom: 3px solid #cb34d9;
@@ -20,14 +18,12 @@
       color: #cb34d9;
     }
 
-    /* ── Calendar card ─────────────────────────────────────────── */
     .calendar-card {
       background: #fff;
       border-radius: 16px;
       box-shadow: 0 4px 32px rgba(203, 52, 217, 0.10), 0 1px 4px rgba(0,0,0,0.06);
       overflow: hidden;
     }
-    /* Signature element: purple gradient crown */
     .calendar-card::before {
       content: '';
       display: block;
@@ -38,7 +34,6 @@
       padding: 1.5rem 1.75rem 2rem;
     }
 
-    /* ── Legend pills ──────────────────────────────────────────── */
     .legend-bar {
       display: flex;
       flex-wrap: wrap;
@@ -64,7 +59,7 @@
     .pill-rejected { background: #f3f3f3; color: #4b4b4b; border: 1.5px solid #9ca3af; }
     .pill-blocked  { background: #fde8e8; color: #991b1b; border: 1.5px solid #ef4444; }
 
-    /* ── FullCalendar theme overrides ──────────────────────────── */
+    /* Root do FullCalendar */
     :root {
       --fc-border-color: #ead5f5;
       --fc-today-bg-color: rgba(203, 52, 217, 0.07);
@@ -79,7 +74,6 @@
       --fc-page-bg-color: #fff;
     }
 
-    /* Toolbar title */
     .fc .fc-toolbar-title {
       font-size: 1.3rem;
       font-weight: 700;
@@ -87,7 +81,6 @@
       letter-spacing: -0.01em;
     }
 
-    /* Buttons */
     .fc .fc-button {
       border-radius: 8px !important;
       font-weight: 600;
@@ -100,14 +93,12 @@
     .fc .fc-button:hover { transform: translateY(-1px); }
     .fc .fc-button:active { transform: translateY(0); }
 
-    /* View switcher group */
     .fc .fc-button-group .fc-button {
       border-radius: 0 !important;
     }
     .fc .fc-button-group .fc-button:first-child { border-radius: 8px 0 0 8px !important; }
     .fc .fc-button-group .fc-button:last-child  { border-radius: 0 8px 8px 0 !important; }
 
-    /* Column headers */
     .fc .fc-col-header-cell {
       background: #faf5fc;
       font-weight: 700;
@@ -119,17 +110,14 @@
     }
     .fc .fc-col-header-cell a { color: inherit !important; text-decoration: none; }
 
-    /* Time slots */
     .fc .fc-timegrid-slot-label {
       font-size: 0.75rem;
       color: #9c28a8;
       font-weight: 600;
     }
 
-    /* Today column highlight */
     .fc .fc-day-today { background: var(--fc-today-bg-color) !important; }
 
-    /* Month view day numbers */
     .fc .fc-daygrid-day-number {
       font-size: 0.8rem;
       font-weight: 700;
@@ -147,7 +135,6 @@
       margin: 4px;
     }
 
-    /* ── Modal ─────────────────────────────────────────────────── */
     .modal-header {
       background: #cb34d9;
       color: #fff;

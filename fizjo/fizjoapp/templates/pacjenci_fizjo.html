@@ -23,7 +23,11 @@
 
   <div class="container pb-5">
 
-    <!-- ── Add patient by code ───────────────────────────────────── -->
+<!-- 
+_____________________________________________________________
+                  Dodawanie po kodzie
+_____________________________________________________________
+-->
     <div class="card shadow-sm mb-4" style="border-top: 4px solid #cb34d9;">
       <div class="card-body">
         <h5 class="card-title mb-3">
@@ -62,7 +66,11 @@
       </div>
     </div>
 
-    <!-- ── Pending outgoing requests ─────────────────────────────── -->
+<!-- 
+_____________________________________________________________
+                Oczekujące zaproszenia
+_____________________________________________________________
+-->
     {% if oczekujace %}
     <div class="card shadow-sm mb-4 border-warning">
       <div class="card-header bg-warning bg-opacity-10 border-warning">
@@ -84,7 +92,11 @@
     </div>
     {% endif %}
 
-    <!-- ── Accepted patients ──────────────────────────────────────── -->
+<!-- 
+_____________________________________________________________
+  Zaakceptowani pacjenci wyświetlają się dla fizjo jako jego
+_____________________________________________________________
+-->
     <h4 class="mb-3">
       <i class="fas fa-users" style="color:#cb34d9"></i> Moi pacjenci
       <span class="badge badge-fiz ms-2">{{ pacjenci|length }}</span>
@@ -98,6 +110,7 @@
             <th>Imię i nazwisko</th>
             <th>Kod pacjenta</th>
             <th>E-mail</th>
+            <th>Akcje</th>
           </tr>
         </thead>
         <tbody>
@@ -106,6 +119,11 @@
             <td><strong>{{ pacjent.imie }} {{ pacjent.nazwisko }}</strong></td>
             <td><strong>{{ pacjent.kod_pacjenta|default:"—" }}</strong></td>
             <td>{{ pacjent.email }}</td>
+            <td>
+              <a href="{% url 'profil_pacjenta' pacjent.id %}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-chart-line"></i> Profil
+              </a>
+            </td>
           </tr>
           {% endfor %}
         </tbody>

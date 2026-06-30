@@ -99,8 +99,7 @@ class Program(models.Model):
 
     def __str__(self):
         return f"{self.nazwa} - {self.pacjent}"
-    
-#Kalendarz  
+     
 class Wizyta(models.Model):
     STATUS_CHOICES = [
         ('oczekujaca', 'Oczekująca'),
@@ -137,9 +136,7 @@ class PlanTreningowy(models.Model):
     pacjent = models.ForeignKey('Pacjent', on_delete=models.CASCADE, related_name='plany')
     nazwa = models.CharField(max_length=200)
     data_utworzenia = models.DateTimeField(auto_now_add=True)
-    # How many sessions per week the physio prescribes
     sesje_tygodniowo = models.IntegerField(default=3, verbose_name="Sesji w tygodniu")
-    # Total duration of the plan in weeks
     czas_trwania_tygodnie = models.IntegerField(default=4, verbose_name="Czas trwania (tygodnie)")
 
     def __str__(self):
