@@ -676,13 +676,24 @@ def plany_treningowe(request):
 def szczegoly_planu(request, plan_id):
     if not hasattr(request.user, 'pacjent'):
         return render(request, '403.html', status=403)
+        
     pacjent = request.user.pacjent
     plan = get_object_or_404(PlanTreningowy, id=plan_id, pacjent=pacjent)
     cwiczenia = list(plan.cwiczenia.all())
 
+    dzisiaj = timezone.now().date()
+    juz_oceniono = OcenaCwiczenia.objects.filter(
+        pacjent=pacjent,
+        cwiczenie__in=cwiczenia,
+        data_oceny__date=dzisiaj  
+    ).exists()
+
     OcenaFormSet = modelformset_factory(OcenaCwiczenia, form=OcenaCwiczeniaForm, extra=len(cwiczenia))
 
     if request.method == 'POST':
+        if juz_oceniono:
+            return redirect('szczegoly_planu', plan_id=plan.id) 
+
         formset = OcenaFormSet(request.POST, queryset=OcenaCwiczenia.objects.none())
         if formset.is_valid():
             for i, form in enumerate(formset.forms):
@@ -709,6 +720,7 @@ def szczegoly_planu(request, plan_id):
         'zestaw': zestaw,
         'formset': formset,
         'sesje_w_tygodniu': sesje_w_tygodniu,
+        'juz_oceniono': juz_oceniono,
     })
 
 
